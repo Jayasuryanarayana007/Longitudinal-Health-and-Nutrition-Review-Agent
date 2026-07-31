@@ -5,12 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initDb } from './data/db.js';
 
-// Load routes
 import authRoutes from './routes/auth.js';
-import logRoutes from './routes/logs.js';
-import planRoutes from './routes/plans.js';
-import reviewRoutes from './routes/reviews.js';
-import auditRoutes from './routes/audits.js';
 
 dotenv.config();
 
@@ -24,17 +19,13 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize SQLite database
-initDb().catch(err => {
+const dbInitPromise = initDb().catch(err => {
   console.error('Failed to initialize database:', err);
   process.exit(1);
 });
 
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/logs', logRoutes);
-app.use('/api/plans', planRoutes);
-app.use('/api/reviews', reviewRoutes);
-app.use('/api/audits', auditRoutes);
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
@@ -58,6 +49,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
+dbInitPromise.then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server is listening on port ${PORT}`);
+  });
 });

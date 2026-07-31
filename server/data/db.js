@@ -25,6 +25,7 @@ export async function initDb() {
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       username TEXT PRIMARY KEY,
+      name TEXT,
       email TEXT UNIQUE,
       passwordHash TEXT,
       dob TEXT,
@@ -39,6 +40,7 @@ export async function initDb() {
       targetSleepHours REAL,
       targetDailyCalories REAL,
       targetActivityMinutes INTEGER,
+      targetWeight REAL,
       status TEXT,
       createdAt TEXT,
       FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
@@ -49,6 +51,7 @@ export async function initDb() {
       username TEXT,
       date TEXT,
       weight REAL,
+      height REAL,
       sleepHours REAL,
       moodScore INTEGER,
       energyScore INTEGER,
@@ -77,6 +80,8 @@ export async function initDb() {
       username TEXT,
       type TEXT,
       durationMinutes INTEGER,
+      quantity REAL,
+      unit TEXT,
       intensity TEXT,
       createdAt TEXT,
       FOREIGN KEY (logId) REFERENCES daily_logs(logId) ON DELETE CASCADE,

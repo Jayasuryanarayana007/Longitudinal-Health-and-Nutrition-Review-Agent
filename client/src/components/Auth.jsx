@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Lock, Mail, User, Calendar, Smile } from 'lucide-react';
 
 export default function Auth({ onLoginSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -47,9 +46,8 @@ export default function Auth({ onLoginSuccess }) {
       if (isLogin) {
         onLoginSuccess(data.user);
       } else {
-        // Switch to login tab on successful signup
         setIsLogin(true);
-        setError('Account created successfully. Please log in.');
+        setError({ type: 'success', message: 'Account created successfully! Please log in.' });
         setFormData({
           username: formData.username,
           password: '',
@@ -60,97 +58,114 @@ export default function Auth({ onLoginSuccess }) {
         });
       }
     } catch (err) {
-      setError(err.message);
+      setError({ type: 'danger', message: err.message });
     } finally {
       setLoading(false);
     }
   };
 
+  // Restrict calendar ranges to 100 years ago up to today for year-scroll performance
+  const todayStr = new Date().toISOString().split('T')[0];
+  const hundredYearsAgoStr = `${new Date().getFullYear() - 100}-01-01`;
+
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      width: '100%',
-      padding: '1rem'
-    }}>
-      <div className="glass-card" style={{ width: '100%', maxWidth: '450px', padding: '2.5rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Wellness Agent</h1>
-          <p>Longitudinal Health & Nutrition Review Agent</p>
+    <div className="auth-container">
+      <div className="auth-card">
+        {/* Header Title block */}
+        <div className="auth-header">
+          <h1 className="auth-title">Wellness Agent</h1>
+          <p className="auth-subtitle">Longitudinal Health & Nutrition Review Agent</p>
         </div>
 
+        {/* Auth Tab Toggle Slider */}
+        <div className="auth-tab-toggle">
+          <button
+            type="button"
+            onClick={() => { setError(null); setIsLogin(true); }}
+            className={`auth-tab-btn ${isLogin ? 'active' : ''}`}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            onClick={() => { setError(null); setIsLogin(false); }}
+            className={`auth-tab-btn ${!isLogin ? 'active' : ''}`}
+          >
+            Sign Up
+          </button>
+        </div>
+
+        {/* Validation Banners */}
         {error && (
-          <div className={`alert-banner ${error.includes('successfully') ? 'success' : 'danger'}`} style={{ marginBottom: '1.5rem' }}>
-            <span>{error}</span>
+          <div className={`alert-banner ${error.type === 'success' ? 'success' : 'danger'}`}>
+            <span>{error.message}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {!isLogin && (
             <>
-              <div>
-                <label htmlFor="name">Full Name</label>
-                <div style={{ position: 'relative' }}>
-                  <User size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+              {/* Full Name field */}
+              <div className="auth-input-group">
+                <label htmlFor="name" className="auth-label">Full Name</label>
+                <div className="auth-input-wrapper">
                   <input
                     type="text"
                     id="name"
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="John Doe"
-                    style={{ paddingLeft: '2.5rem' }}
+                    className="auth-input"
                     required
                   />
                 </div>
               </div>
 
-              <div>
-                <label htmlFor="email">Email Address</label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+              {/* Email field */}
+              <div className="auth-input-group">
+                <label htmlFor="email" className="auth-label">Email Address</label>
+                <div className="auth-input-wrapper">
                   <input
                     type="email"
                     id="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="john@example.com"
-                    style={{ paddingLeft: '2.5rem' }}
+                    className="auth-input"
                     required
                   />
                 </div>
               </div>
 
-              <div className="grid-cols-2">
-                <div>
-                  <label htmlFor="dob">Date of Birth</label>
-                  <div style={{ position: 'relative' }}>
-                    <Calendar size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+              {/* DOB & Sex Grid */}
+              <div className="auth-grid-2">
+                <div className="auth-input-group">
+                  <label htmlFor="dob" className="auth-label">Date of Birth</label>
+                  <div className="auth-input-wrapper">
                     <input
                       type="date"
                       id="dob"
                       name="dob"
                       value={formData.dob}
                       onChange={handleChange}
-                      style={{ paddingLeft: '2.5rem' }}
+                      min={hundredYearsAgoStr}
+                      max={todayStr}
+                      className="auth-input"
+                      style={{ colorScheme: 'dark' }}
                       required
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label htmlFor="sex">Biological Sex</label>
-                  <div style={{ position: 'relative' }}>
-                    <Smile size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+                <div className="auth-input-group">
+                  <label htmlFor="sex" className="auth-label">Biological Sex</label>
+                  <div className="auth-input-wrapper">
                     <select
                       id="sex"
                       name="sex"
                       value={formData.sex}
                       onChange={handleChange}
-                      style={{ paddingLeft: '2.5rem', appearance: 'none', WebkitAppearance: 'none' }}
+                      className="auth-select"
                       required
                     >
                       <option value="Male">Male</option>
@@ -163,68 +178,51 @@ export default function Auth({ onLoginSuccess }) {
             </>
           )}
 
-          <div>
-            <label htmlFor="username">Username</label>
-            <div style={{ position: 'relative' }}>
-              <User size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+          {/* Username field */}
+          <div className="auth-input-group">
+            <label htmlFor="username" className="auth-label">Username</label>
+            <div className="auth-input-wrapper">
               <input
                 type="text"
                 id="username"
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                placeholder="johndoe"
-                style={{ paddingLeft: '2.5rem' }}
+                className="auth-input"
                 required
               />
             </div>
           </div>
 
-          <div>
-            <label htmlFor="password">Password</label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+          {/* Password field */}
+          <div className="auth-input-group">
+            <label htmlFor="password" className="auth-label">Password</label>
+            <div className="auth-input-wrapper">
               <input
                 type="password"
                 id="password"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="••••••••"
-                style={{ paddingLeft: '2.5rem' }}
+                className="auth-input"
                 required
               />
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} disabled={loading}>
-            {loading ? <div className="spinner" style={{ width: '18px', height: '18px' }}></div> : (isLogin ? 'Sign In' : 'Sign Up')}
+          {/* Action button */}
+          <button 
+            type="submit" 
+            className="auth-submit-btn" 
+            disabled={loading}
+          >
+            {loading ? (
+              <div className="spinner"></div>
+            ) : (
+              isLogin ? 'Sign In' : 'Create Account'
+            )}
           </button>
         </form>
-
-        <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          {isLogin ? (
-            <>
-              Don't have an account?{' '}
-              <span
-                onClick={() => { setError(null); setIsLogin(false); }}
-                style={{ color: 'var(--color-primary)', cursor: 'pointer', fontWeight: '600' }}
-              >
-                Sign Up
-              </span>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <span
-                onClick={() => { setError(null); setIsLogin(true); }}
-                style={{ color: 'var(--color-primary)', cursor: 'pointer', fontWeight: '600' }}
-              >
-                Sign In
-              </span>
-            </>
-          )}
-        </div>
       </div>
     </div>
   );
