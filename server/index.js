@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { initDb } from './data/db.js';
 
 import authRoutes from './routes/auth.js';
+import logRoutes from './routes/logs.js';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ const dbInitPromise = initDb().catch(err => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/logs', logRoutes);
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
@@ -50,7 +52,16 @@ app.use((err, req, res, next) => {
 });
 
 dbInitPromise.then(() => {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Please free the port or set a different PORT env variable.`);
+    } else {
+      console.error('Server error:', err);
+    }
+    process.exit(1);
   });
 });

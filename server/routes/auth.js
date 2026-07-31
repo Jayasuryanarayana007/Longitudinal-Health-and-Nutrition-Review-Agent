@@ -6,7 +6,7 @@ const router = Router();
 
 // POST /signup - Register a new user
 router.post('/signup', async (req, res, next) => {
-  const { username, email, password, dob, sex, name } = req.req_body || req.body;
+  const { username, email, password, dob, sex, name } = req.body;
   
   if (!username || !email || !password || !dob || !sex || !name) {
     return res.status(400).json({ success: false, message: 'All fields are required.' });

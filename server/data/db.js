@@ -9,17 +9,19 @@ const __dirname = path.dirname(__filename);
 const dbPath = path.join(__dirname, 'database.sqlite');
 
 export async function getDbConnection() {
-  return open({
+  const db = await open({
     filename: dbPath,
     driver: sqlite3.Database
   });
+  // Enable foreign key constraints on every connection (SQLite PRAGMA is per-connection)
+  await db.run('PRAGMA foreign_keys = ON');
+  return db;
 }
 
 export async function initDb() {
   const db = await getDbConnection();
-  
-  // Enable foreign keys
-  await db.get('PRAGMA foreign_keys = ON');
+
+  // Create tables (foreign_keys PRAGMA already enabled by getDbConnection)
 
   // Create tables
   await db.exec(`

@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import Auth from './components/Auth';
+import Dashboard from './components/Dashboard';
+import DataLogger from './components/DataLogger';
+import { LogOut, Activity, LayoutDashboard, PenTool } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' or 'logger'
 
-  // Check session storage on mount
+  // Retrieve user session on mount
   useEffect(() => {
     const session = sessionStorage.getItem('wellness_session');
     if (session) {
@@ -27,68 +31,135 @@ export default function App() {
   }
 
   return (
-    <div style={{
-      maxWidth: '600px',
-      margin: '4rem auto',
-      padding: '2.5rem',
-      background: 'rgba(30, 41, 59, 0.7)',
-      backdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: '16px',
-      fontFamily: 'sans-serif',
-      color: '#f8fafc',
-      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)'
-    }}>
-      <h1 style={{ fontSize: '1.75rem', marginBottom: '1rem', color: '#10b981' }}>
-        ✓ Layer 1 (V1) Completed Successfully
-      </h1>
-      <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>
-        Database tables initialized, credential hashes generated, and multi-user authentication gateway verified.
-      </p>
-
-      <div style={{
-        background: 'rgba(15, 23, 42, 0.6)',
-        padding: '1.25rem',
-        borderRadius: '8px',
-        border: '1px solid rgba(255,255,255,0.04)',
-        marginBottom: '2rem'
+    <div style={{ minHeight: '100vh', backgroundColor: '#090d16', color: '#f1f5f9' }}>
+      
+      {/* Premium Top Navigation Bar */}
+      <header style={{
+        background: '#151d30',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10
       }}>
-        <h3 style={{ margin: '0 0 1rem 0' }}>Authenticated Session Data</h3>
-        <p style={{ margin: '0.5rem 0' }}><strong>Username:</strong> @{currentUser.username}</p>
-        <p style={{ margin: '0.5rem 0' }}><strong>Date of Birth:</strong> {currentUser.dob}</p>
-        <p style={{ margin: '0.5rem 0' }}><strong>Biological Sex:</strong> {currentUser.sex}</p>
-        <p style={{ margin: '0.5rem 0' }}><strong>Active Goal Version:</strong> v{currentUser.activeGoal ? currentUser.activeGoal.version : 1}</p>
-      </div>
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '1rem 2rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}>
+          {/* Logo Brand */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              background: 'rgba(5, 150, 105, 0.1)',
+              padding: '0.5rem',
+              borderRadius: '8px',
+              border: '1px solid rgba(5, 150, 105, 0.2)',
+              color: '#10b981',
+              display: 'flex'
+            }}>
+              <Activity size={20} />
+            </div>
+            <strong style={{ fontSize: '1.2rem', color: '#f8fafc' }}>Wellness Review</strong>
+          </div>
 
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <button
-          onClick={handleLogout}
-          style={{
-            background: 'transparent',
-            color: '#f8fafc',
-            border: '1px solid rgba(255,255,255,0.15)',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
-        >
-          Sign Out
-        </button>
-        <button
-          disabled
-          style={{
-            background: 'rgba(16, 185, 129, 0.2)',
-            color: 'rgba(16, 185, 129, 0.6)',
-            border: '1px solid rgba(16, 185, 129, 0.2)',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '6px',
-            cursor: 'not-allowed',
-            fontWeight: '600'
-          }}
-        >
-          Stage V2: Logging (Locked)
-        </button>
+          {/* User metadata & Logout */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+              Logged in as <strong style={{ color: '#f8fafc' }}>{currentUser.name || currentUser.username}</strong>
+              <span style={{ margin: '0 0.5rem', color: 'rgba(255,255,255,0.1)' }}>|</span>
+              {currentUser.sex} ({(() => {
+                const today = new Date();
+                const birth = new Date(currentUser.dob);
+                let age = today.getFullYear() - birth.getFullYear();
+                const monthDiff = today.getMonth() - birth.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
+                return age;
+              })()} yrs)
+            </div>
+            <button
+              onClick={handleLogout}
+              style={{
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '6px',
+                padding: '0.5rem 1rem',
+                color: '#f1f5f9',
+                fontSize: '0.85rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'background 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <LogOut size={14} /> Sign Out
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Workspace Frame */}
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+        
+        {/* Navigation Tabs Bar */}
+        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '1rem', marginBottom: '2rem' }}>
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            style={{
+              background: activeTab === 'dashboard' ? '#1e293b' : 'transparent',
+              border: activeTab === 'dashboard' ? '1px solid rgba(255,255,255,0.08)' : 'none',
+              borderRadius: '8px',
+              padding: '0.75rem 1.5rem',
+              color: activeTab === 'dashboard' ? '#ffffff' : '#94a3b8',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontFamily: 'inherit',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <LayoutDashboard size={16} /> Dashboard
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('logger')}
+            style={{
+              background: activeTab === 'logger' ? '#1e293b' : 'transparent',
+              border: activeTab === 'logger' ? '1px solid rgba(255,255,255,0.08)' : 'none',
+              borderRadius: '8px',
+              padding: '0.75rem 1.5rem',
+              color: activeTab === 'logger' ? '#ffffff' : '#94a3b8',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontFamily: 'inherit',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <PenTool size={16} /> Log Daily Metrics
+          </button>
+        </div>
+
+        {/* Dynamic Component Content Panel */}
+        <main>
+          {activeTab === 'dashboard' ? (
+            <Dashboard currentUser={currentUser} />
+          ) : (
+            <DataLogger currentUser={currentUser} />
+          )}
+        </main>
+
       </div>
     </div>
   );
