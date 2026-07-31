@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import { getDbConnection } from '../data/db.js';
+import { validateLogBoundaries, checkInconsistencies, detectMissingDays } from '../utils/validationEngine.js';
 
 const router = Router();
 
@@ -31,20 +32,16 @@ router.post('/', async (req, res, next) => {
   const moodVal = (moodScore !== null && moodScore !== undefined && moodScore !== '') ? parseInt(moodScore) : null;
   const energyVal = (energyScore !== null && energyScore !== undefined && energyScore !== '') ? parseInt(energyScore) : null;
 
-  if (weightVal !== null && (isNaN(weightVal) || weightVal <= 0)) {
-    return res.status(400).json({ success: false, message: 'Weight must be a positive number.' });
+  // Boundary validation check
+  const boundaryError = validateLogBoundaries(req.body);
+  if (boundaryError) {
+    return res.status(400).json({ success: false, message: boundaryError });
   }
-  if (heightVal !== null && (isNaN(heightVal) || heightVal <= 0)) {
-    return res.status(400).json({ success: false, message: 'Height must be a positive number.' });
-  }
-  if (sleepVal !== null && (isNaN(sleepVal) || sleepVal < 0 || sleepVal > 24)) {
-    return res.status(400).json({ success: false, message: 'Sleep duration must be between 0 and 24 hours.' });
-  }
-  if (moodVal !== null && (isNaN(moodVal) || moodVal < 1 || moodVal > 10)) {
-    return res.status(400).json({ success: false, message: 'Mood score must be an integer between 1 and 10.' });
-  }
-  if (energyVal !== null && (isNaN(energyVal) || energyVal < 1 || energyVal > 10)) {
-    return res.status(400).json({ success: false, message: 'Energy score must be an integer between 1 and 10.' });
+
+  // Cross-metric inconsistency evaluation
+  const inconsistencyResult = await checkInconsistencies(userStr, req.body);
+  if (inconsistencyResult.blockingError) {
+    return res.status(400).json({ success: false, message: inconsistencyResult.blockingError });
   }
 
   // Validate Meals
@@ -144,7 +141,12 @@ router.post('/', async (req, res, next) => {
     }
 
     await db.run('COMMIT');
-    return res.status(200).json({ success: true, message: 'Daily logs saved successfully.', logId });
+    return res.status(200).json({
+      success: true,
+      message: 'Daily logs saved successfully.',
+      logId,
+      warnings: inconsistencyResult.warnings || []
+    });
 
   } catch (error) {
     if (db) await db.run('ROLLBACK');
@@ -303,12 +305,72 @@ router.get('/summaries', async (req, res, next) => {
     const weekly = await getSummaryForPeriod(7);
     const monthly = await getSummaryForPeriod(30);
 
+    // Detect missing log days in the past 7 days
+    const missingInfo = await detectMissingDays(userStr, baseDateStr);
+
+    // Fetch daily logs history for charts (past 30 days)
+    const baseDate = new Date(baseDateStr);
+    const start30Date = new Date(baseDate);
+    start30Date.setDate(baseDate.getDate() - 29);
+    const start30Str = start30Date.toISOString().split('T')[0];
+
+    const dailyLogs = await db.all(
+      `SELECT * FROM daily_logs WHERE username = ? AND date >= ? AND date <= ? ORDER BY date ASC`,
+      [userStr, start30Str, baseDateStr]
+    );
+
+    const logIds = dailyLogs.map(l => l.logId);
+    let allMeals = [];
+    let allActivities = [];
+
+    if (logIds.length > 0) {
+      const placeholder = logIds.map(() => '?').join(',');
+      allMeals = await db.all(`SELECT * FROM meals WHERE logId IN (${placeholder})`, logIds);
+      allActivities = await db.all(`SELECT * FROM activities WHERE logId IN (${placeholder})`, logIds);
+    }
+
+    // Build structured daily history entries for SVG charts
+    const dailyHistory = dailyLogs.map(log => {
+      const logMeals = allMeals.filter(m => m.logId === log.logId);
+      let dayCalories = 0, dayProtein = 0, dayCarbs = 0, dayFats = 0;
+      logMeals.forEach(m => {
+        try {
+          const items = JSON.parse(m.correctedEstimates || '[]');
+          items.forEach(item => {
+            dayCalories += parseFloat(item.calories || 0);
+            dayProtein += parseFloat(item.protein || 0);
+            dayCarbs += parseFloat(item.carbs || 0);
+            dayFats += parseFloat(item.fats || 0);
+          });
+        } catch(e) {}
+      });
+
+      const logActs = allActivities.filter(a => a.logId === log.logId);
+      const dayActivityMins = logActs.reduce((sum, a) => sum + (a.durationMinutes || 0), 0);
+
+      return {
+        date: log.date,
+        weight: log.weight,
+        sleepHours: log.sleepHours,
+        moodScore: log.moodScore,
+        energyScore: log.energyScore,
+        calories: dayCalories,
+        protein: dayProtein,
+        carbs: dayCarbs,
+        fats: dayFats,
+        activityMinutes: dayActivityMins
+      };
+    });
+
     return res.json({
       success: true,
       username: userStr,
       baseDate: baseDateStr,
+      missingDays: missingInfo.missingDaysFormatted,
+      missingDates: missingInfo.missingDates,
       weekly,
-      monthly
+      monthly,
+      dailyHistory
     });
 
   } catch (error) {

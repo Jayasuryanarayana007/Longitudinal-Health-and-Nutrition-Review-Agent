@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Database, TrendingDown, Clock, Smile, Flame, ShieldAlert, CheckCircle } from 'lucide-react';
+import { Database, TrendingDown, Clock, Smile, Flame, ShieldAlert, CheckCircle, Calendar, AlertCircle } from 'lucide-react';
+import TrendCharts from './TrendCharts';
 
 export default function Dashboard({ currentUser }) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -8,6 +9,7 @@ export default function Dashboard({ currentUser }) {
   const [error, setError] = useState(null);
   const [seeding, setSeeding] = useState(false);
   const [seedSuccess, setSeedSuccess] = useState(null);
+  const [chartRange, setChartRange] = useState(7); // 7 or 30 days
 
   // Fetch summaries from the backend
   const fetchSummaries = async () => {
@@ -176,10 +178,29 @@ export default function Dashboard({ currentUser }) {
           <span>{seedSuccess}</span>
         </div>
       )}
-      {error && (
-        <div className="alert-banner danger">
-          <ShieldAlert size={18} />
-          <span>{error}</span>
+      {/* Missing Log Detector Top Alert Banner */}
+      {summaryData && summaryData.missingDays && summaryData.missingDays.length > 0 && (
+        <div style={{
+          background: 'rgba(245, 158, 11, 0.1)',
+          border: '1px solid rgba(245, 158, 11, 0.3)',
+          borderRadius: '10px',
+          padding: '1rem 1.25rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          color: '#fbbf24'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <AlertCircle size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
+            <div>
+              <strong style={{ fontSize: '0.9rem', color: '#f8fafc' }}>Missing Log Entries Detected</strong>
+              <div style={{ fontSize: '0.8rem', color: '#cbd5e1', marginTop: '0.15rem' }}>
+                Unlogged days in the past 7 days: <strong>{summaryData.missingDays.join(', ')}</strong>. Continuous tracking improves data integrity.
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -197,6 +218,68 @@ export default function Dashboard({ currentUser }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
               <SummaryPeriodPanel periodTitle="Weekly Trends" data={summaryData.weekly} />
               <SummaryPeriodPanel periodTitle="Monthly Trends" data={summaryData.monthly} />
+            </div>
+          )}
+
+          {/* SECTION: Custom SVG Trend Charts with Range Selector Switch */}
+          {summaryData && summaryData.dailyHistory && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Range Toggle Header Bar */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                  Showing <strong style={{ color: '#f8fafc' }}>{chartRange}-Day</strong> trend analytics
+                </div>
+                <div style={{
+                  display: 'flex',
+                  background: '#151d30',
+                  padding: '3px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.08)'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setChartRange(7)}
+                    style={{
+                      background: chartRange === 7 ? '#10b981' : 'transparent',
+                      color: chartRange === 7 ? '#ffffff' : '#94a3b8',
+                      border: 'none',
+                      padding: '0.4rem 0.9rem',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    7 Days
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChartRange(30)}
+                    style={{
+                      background: chartRange === 30 ? '#10b981' : 'transparent',
+                      color: chartRange === 30 ? '#ffffff' : '#94a3b8',
+                      border: 'none',
+                      padding: '0.4rem 0.9rem',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    30 Days
+                  </button>
+                </div>
+              </div>
+
+              <TrendCharts
+                dailyHistory={
+                  chartRange === 7 
+                    ? summaryData.dailyHistory.slice(-7) 
+                    : summaryData.dailyHistory
+                }
+              />
             </div>
           )}
 

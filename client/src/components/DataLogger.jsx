@@ -26,6 +26,7 @@ export default function DataLogger({ currentUser }) {
   });
 
   const [error, setError] = useState(null);
+  const [warnings, setWarnings] = useState([]);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -106,7 +107,31 @@ export default function DataLogger({ currentUser }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setWarnings([]);
     setSuccess(null);
+
+    // Client-side pre-validation for blocking inconsistency rules
+    const sleepVal = sleepHours ? parseFloat(sleepHours) : null;
+    const energyVal = parseInt(energyScore);
+
+    // Rule 1: Sleep < 3h AND Energy >= 9 -> BLOCKING
+    if (sleepVal !== null && sleepVal < 3.0 && energyVal >= 9) {
+      setError('Paradoxical Energy Warning: Logged sleep duration is under 3 hours (<3h) but Energy Score is reported at 9 or higher (≥9). Please verify your entry before submitting.');
+      return;
+    }
+
+    // Rule 2: Active mins > 120m AND Calories < 1000 -> BLOCKING
+    const totalActivityMins = activities.reduce((sum, a) => sum + (parseInt(a.durationMinutes) || 0), 0);
+    const totalCalories = meals.reduce((sum, m) => {
+      const itemsCals = (m.items || []).reduce((s, item) => s + (parseFloat(item.calories) || 0), 0);
+      return sum + itemsCals;
+    }, 0);
+
+    if (totalActivityMins > 120 && totalCalories > 0 && totalCalories < 1000) {
+      setError('Extreme Calorie Deficit Warning: Total active workout duration exceeds 120 minutes while daily calorie intake is under 1000 kcal. Please verify your entries.');
+      return;
+    }
+
     setLoading(true);
 
     const payload = {
@@ -134,6 +159,10 @@ export default function DataLogger({ currentUser }) {
       }
 
       setSuccess('Daily logs submitted successfully!');
+      if (data.warnings && data.warnings.length > 0) {
+        setWarnings(data.warnings);
+      }
+
       // Clear all form fields to prevent stale re-submissions
       setWeight('');
       setHeight('');
@@ -169,6 +198,16 @@ export default function DataLogger({ currentUser }) {
         <div className="alert-banner danger">
           <AlertTriangle size={18} />
           <span>{error}</span>
+        </div>
+      )}
+      {warnings && warnings.length > 0 && (
+        <div className="alert-banner warning" style={{ background: 'rgba(245, 158, 11, 0.15)', borderColor: '#f59e0b', color: '#fbbf24' }}>
+          <AlertTriangle size={18} style={{ color: '#f59e0b' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            {warnings.map((w, idx) => (
+              <span key={idx}>{w}</span>
+            ))}
+          </div>
         </div>
       )}
 
