@@ -43,6 +43,7 @@ export async function initDb() {
       targetDailyCalories REAL,
       targetActivityMinutes INTEGER,
       targetWeight REAL,
+      targetActivities TEXT,
       status TEXT,
       createdAt TEXT,
       FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
@@ -113,6 +114,13 @@ export async function initDb() {
     );
   `);
   
+  // Column Migration Check
+  try {
+    await db.exec('ALTER TABLE goals ADD COLUMN targetActivities TEXT');
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
   console.log('Database tables initialized successfully.');
   await db.close();
 }

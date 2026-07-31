@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Edit3, CheckCircle, ShieldAlert, Sparkles, Scale, Moon, Flame, Activity } from 'lucide-react';
+import { Target, Edit3, CheckCircle, ShieldAlert, Scale, Moon, Flame, Activity, Plus, Trash } from 'lucide-react';
 
 export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
   const [goal, setGoal] = useState(null);
@@ -12,9 +12,13 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
   const [formData, setFormData] = useState({
     targetWeight: '',
     targetDailyCalories: '',
-    targetSleepHours: '',
-    targetActivityMinutes: ''
+    targetSleepHours: ''
   });
+
+  // Multiple Target Activities State
+  const [targetActivities, setTargetActivities] = useState([
+    { type: 'Walking', durationMinutes: '30', quantity: '5000', unit: 'steps' }
+  ]);
 
   const fetchActiveGoal = async () => {
     setLoading(true);
@@ -29,9 +33,21 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
         setFormData({
           targetWeight: String(data.goal.targetWeight || 75.0),
           targetDailyCalories: String(data.goal.targetDailyCalories || 2000),
-          targetSleepHours: String(data.goal.targetSleepHours || 8.0),
-          targetActivityMinutes: String(data.goal.targetActivityMinutes || 30)
+          targetSleepHours: String(data.goal.targetSleepHours || 8.0)
         });
+
+        if (Array.isArray(data.goal.targetActivities) && data.goal.targetActivities.length > 0) {
+          setTargetActivities(data.goal.targetActivities.map(a => ({
+            type: a.type || 'Workout',
+            durationMinutes: String(a.durationMinutes || 15),
+            quantity: a.quantity !== null && a.quantity !== undefined ? String(a.quantity) : '',
+            unit: a.unit || 'mins'
+          })));
+        } else {
+          setTargetActivities([
+            { type: 'Workout', durationMinutes: String(data.goal.targetActivityMinutes || 30), quantity: '', unit: 'mins' }
+          ]);
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -44,6 +60,26 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
     fetchActiveGoal();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.username]);
+
+  const handleActivityChange = (index, field, val) => {
+    const updated = [...targetActivities];
+    updated[index][field] = val;
+    setTargetActivities(updated);
+  };
+
+  const addTargetActivityRow = () => {
+    setTargetActivities([
+      ...targetActivities,
+      { type: 'Running', durationMinutes: '20', quantity: '3', unit: 'km' }
+    ]);
+  };
+
+  const removeTargetActivityRow = (index) => {
+    if (targetActivities.length <= 1) return;
+    const updated = [...targetActivities];
+    updated.splice(index, 1);
+    setTargetActivities(updated);
+  };
 
   const handleSaveGoals = async (e) => {
     e.preventDefault();
@@ -60,7 +96,12 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
           targetWeight: parseFloat(formData.targetWeight),
           targetDailyCalories: parseFloat(formData.targetDailyCalories),
           targetSleepHours: parseFloat(formData.targetSleepHours),
-          targetActivityMinutes: parseInt(formData.targetActivityMinutes)
+          targetActivities: targetActivities.map(a => ({
+            type: a.type,
+            durationMinutes: parseInt(a.durationMinutes) || 15,
+            quantity: a.quantity ? parseFloat(a.quantity) : null,
+            unit: a.unit
+          }))
         })
       });
 
@@ -87,6 +128,12 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
       </div>
     );
   }
+
+  const activeTargetActivitiesList = (goal && Array.isArray(goal.targetActivities) && goal.targetActivities.length > 0)
+    ? goal.targetActivities
+    : targetActivities;
+
+  const totalWeeklyTargetMins = activeTargetActivitiesList.reduce((s, a) => s + (parseInt(a.durationMinutes) || 0), 0) * 7;
 
   return (
     <div className="auth-card" style={{ maxWidth: 'none', padding: '1.75rem', background: 'rgba(15, 23, 42, 0.6)' }}>
@@ -128,7 +175,7 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
         </button>
       </div>
 
-      {/* Success/Error Notifications */}
+      {/* Notifications */}
       {success && (
         <div className="alert-banner success" style={{ marginBottom: '1rem' }}>
           <CheckCircle size={16} />
@@ -142,111 +189,227 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
         </div>
       )}
 
-      {/* VIEW MODE: 4 Core Target Cards */}
+      {/* VIEW MODE */}
       {!isEditing ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-          <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-            <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-              <Scale size={14} style={{ color: '#10b981' }} /> Target Weight
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          
+          {/* Top 3 Metric Cards: Weight, Calories, Sleep */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
+            <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                <Scale size={14} style={{ color: '#10b981' }} /> Target Weight
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
+                {goal ? goal.targetWeight : 75.0} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>kg</span>
+              </div>
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
-              {goal ? goal.targetWeight : 75.0} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>kg</span>
+
+            <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                <Flame size={14} style={{ color: '#06b6d4' }} /> Target Daily Calories
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
+                {goal ? goal.targetDailyCalories : 2000} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>kcal</span>
+              </div>
+            </div>
+
+            <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                <Moon size={14} style={{ color: '#a855f7' }} /> Target Sleep Duration
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
+                {goal ? goal.targetSleepHours : 8.0} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>hrs</span>
+              </div>
             </div>
           </div>
 
-          <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-            <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-              <Flame size={14} style={{ color: '#06b6d4' }} /> Target Daily Calories
+          {/* MULTIPLE TARGET ACTIVITIES DISPLAY PANEL */}
+          <div style={{
+            background: 'rgba(15, 23, 42, 0.4)',
+            padding: '1.25rem',
+            borderRadius: '10px',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.75rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '0.85rem', color: '#f59e0b', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Activity size={16} /> Target Physical Activities (Multiple Targets Supported)
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                Total Target: <strong style={{ color: '#f8fafc' }}>{totalWeeklyTargetMins} mins / week</strong>
+              </span>
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
-              {goal ? goal.targetDailyCalories : 2000} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>kcal</span>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+              {activeTargetActivitiesList.map((act, idx) => (
+                <div key={idx} style={{
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  borderRadius: '8px',
+                  padding: '0.5rem 0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  color: '#f8fafc'
+                }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fbbf24' }}>{act.type}</span>
+                  <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
+                    {act.durationMinutes} mins {act.quantity ? `(${act.quantity} ${act.unit})` : ''}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-            <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-              <Moon size={14} style={{ color: '#a855f7' }} /> Target Sleep Duration
-            </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
-              {goal ? goal.targetSleepHours : 8.0} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>hrs</span>
-            </div>
-          </div>
-
-          <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-            <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-              <Activity size={14} style={{ color: '#f59e0b' }} /> Target Activity
-            </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
-              {goal ? goal.targetActivityMinutes : 30} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>mins / day</span>
-            </div>
-          </div>
         </div>
       ) : (
-        /* EDIT MODE: Interactive Form */
-        <form onSubmit={handleSaveGoals} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', alignItems: 'end' }}>
-          <div className="auth-input-group" style={{ marginBottom: 0 }}>
-            <label className="auth-label">Target Weight (kg)</label>
-            <input
-              type="number"
-              step="any"
-              min="30"
-              max="300"
-              value={formData.targetWeight}
-              onChange={(e) => setFormData({ ...formData, targetWeight: e.target.value })}
-              className="auth-input"
-              style={{ paddingLeft: '0.75rem' }}
-              required
-            />
+        /* EDIT MODE FORM */
+        <form onSubmit={handleSaveGoals} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
+            <div className="auth-input-group" style={{ marginBottom: 0 }}>
+              <label className="auth-label">Target Weight (kg)</label>
+              <input
+                type="number"
+                step="any"
+                min="30"
+                max="300"
+                value={formData.targetWeight}
+                onChange={(e) => setFormData({ ...formData, targetWeight: e.target.value })}
+                className="auth-input"
+                style={{ paddingLeft: '0.75rem' }}
+                required
+              />
+            </div>
+
+            <div className="auth-input-group" style={{ marginBottom: 0 }}>
+              <label className="auth-label">Target Daily Cals (kcal)</label>
+              <input
+                type="number"
+                step="any"
+                min="500"
+                max="10000"
+                value={formData.targetDailyCalories}
+                onChange={(e) => setFormData({ ...formData, targetDailyCalories: e.target.value })}
+                className="auth-input"
+                style={{ paddingLeft: '0.75rem' }}
+                required
+              />
+            </div>
+
+            <div className="auth-input-group" style={{ marginBottom: 0 }}>
+              <label className="auth-label">Target Sleep (hrs)</label>
+              <input
+                type="number"
+                step="any"
+                min="1"
+                max="24"
+                value={formData.targetSleepHours}
+                onChange={(e) => setFormData({ ...formData, targetSleepHours: e.target.value })}
+                className="auth-input"
+                style={{ paddingLeft: '0.75rem' }}
+                required
+              />
+            </div>
           </div>
 
-          <div className="auth-input-group" style={{ marginBottom: 0 }}>
-            <label className="auth-label">Target Daily Cals (kcal)</label>
-            <input
-              type="number"
-              step="any"
-              min="500"
-              max="10000"
-              value={formData.targetDailyCalories}
-              onChange={(e) => setFormData({ ...formData, targetDailyCalories: e.target.value })}
-              className="auth-input"
-              style={{ paddingLeft: '0.75rem' }}
-              required
-            />
-          </div>
+          {/* DYNAMIC MULTIPLE TARGET ACTIVITIES EDITOR */}
+          <div style={{
+            background: 'rgba(15, 23, 42, 0.3)',
+            padding: '1.25rem',
+            borderRadius: '10px',
+            border: '1px solid rgba(245, 158, 11, 0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.75rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label className="auth-label" style={{ color: '#fbbf24', margin: 0 }}>
+                Configure Multiple Target Activities
+              </label>
+              <button
+                type="button"
+                onClick={addTargetActivityRow}
+                style={{
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  border: 'none',
+                  color: '#fbbf24',
+                  borderRadius: '4px',
+                  padding: '0.35rem 0.75rem',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
+                }}
+              >
+                <Plus size={14} /> Add Target Activity
+              </button>
+            </div>
 
-          <div className="auth-input-group" style={{ marginBottom: 0 }}>
-            <label className="auth-label">Target Sleep (hrs)</label>
-            <input
-              type="number"
-              step="any"
-              min="1"
-              max="24"
-              value={formData.targetSleepHours}
-              onChange={(e) => setFormData({ ...formData, targetSleepHours: e.target.value })}
-              className="auth-input"
-              style={{ paddingLeft: '0.75rem' }}
-              required
-            />
-          </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {targetActivities.map((act, index) => (
+                <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={act.type}
+                    onChange={(e) => handleActivityChange(index, 'type', e.target.value)}
+                    placeholder="Activity (e.g. Running)"
+                    className="auth-input"
+                    style={{ paddingLeft: '0.75rem' }}
+                    required
+                  />
+                  <input
+                    type="number"
+                    value={act.durationMinutes}
+                    onChange={(e) => handleActivityChange(index, 'durationMinutes', e.target.value)}
+                    placeholder="Mins/day"
+                    className="auth-input"
+                    style={{ paddingLeft: '0.75rem' }}
+                    required
+                  />
+                  <input
+                    type="number"
+                    value={act.quantity}
+                    onChange={(e) => handleActivityChange(index, 'quantity', e.target.value)}
+                    placeholder="Target Qty (opt)"
+                    className="auth-input"
+                    style={{ paddingLeft: '0.75rem' }}
+                  />
+                  <select
+                    value={act.unit}
+                    onChange={(e) => handleActivityChange(index, 'unit', e.target.value)}
+                    className="auth-select"
+                    style={{ paddingLeft: '0.75rem' }}
+                  >
+                    <option value="steps">steps</option>
+                    <option value="km">km</option>
+                    <option value="miles">miles</option>
+                    <option value="reps">reps</option>
+                    <option value="mins">mins</option>
+                  </select>
 
-          <div className="auth-input-group" style={{ marginBottom: 0 }}>
-            <label className="auth-label">Target Workouts (mins/day)</label>
-            <input
-              type="number"
-              min="1"
-              max="300"
-              value={formData.targetActivityMinutes}
-              onChange={(e) => setFormData({ ...formData, targetActivityMinutes: e.target.value })}
-              className="auth-input"
-              style={{ paddingLeft: '0.75rem' }}
-              required
-            />
+                  {targetActivities.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeTargetActivityRow(index)}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                    >
+                      <Trash size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           <button
             type="submit"
             className="auth-submit-btn"
-            style={{ marginTop: 0, padding: '0.65rem 1rem', fontSize: '0.85rem' }}
+            style={{ marginTop: 0, padding: '0.75rem 1.5rem', fontSize: '0.85rem', width: 'fit-content' }}
             disabled={saving}
           >
             {saving ? <div className="spinner"></div> : 'Save New Goals Profile (vNext)'}

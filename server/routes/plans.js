@@ -26,10 +26,15 @@ router.get('/goals', async (req, res, next) => {
     if (!activeGoal) {
       const goalId = 'goal_' + crypto.randomUUID();
       const createdAt = new Date().toISOString();
+      const defaultActivities = [
+        { type: 'Walking', durationMinutes: 30, quantity: 5000, unit: 'steps' },
+        { type: 'Running', durationMinutes: 20, quantity: 3, unit: 'km' }
+      ];
+
       await db.run(
-        `INSERT INTO goals (goalId, username, version, targetSleepHours, targetDailyCalories, targetActivityMinutes, targetWeight, status, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [goalId, userStr, 1, 8.0, 2000.0, 30, 75.0, 'Active', createdAt]
+        `INSERT INTO goals (goalId, username, version, targetSleepHours, targetDailyCalories, targetActivityMinutes, targetWeight, targetActivities, status, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [goalId, userStr, 1, 8.0, 2000.0, 50, 75.0, JSON.stringify(defaultActivities), 'Active', createdAt]
       );
 
       activeGoal = {
@@ -38,11 +43,24 @@ router.get('/goals', async (req, res, next) => {
         version: 1,
         targetSleepHours: 8.0,
         targetDailyCalories: 2000.0,
-        targetActivityMinutes: 30,
+        targetActivityMinutes: 50,
         targetWeight: 75.0,
+        targetActivities: defaultActivities,
         status: 'Active',
         createdAt
       };
+    } else {
+      // Parse targetActivities JSON
+      try {
+        activeGoal.targetActivities = JSON.parse(activeGoal.targetActivities || '[]');
+      } catch (e) {
+        activeGoal.targetActivities = [];
+      }
+      if (!activeGoal.targetActivities || activeGoal.targetActivities.length === 0) {
+        activeGoal.targetActivities = [
+          { type: 'Walking', durationMinutes: activeGoal.targetActivityMinutes || 30, quantity: 5000, unit: 'steps' }
+        ];
+      }
     }
 
     return res.json({ success: true, goal: activeGoal });
@@ -56,7 +74,7 @@ router.get('/goals', async (req, res, next) => {
 
 // POST /api/plans/goals - Write or update custom target goals (version v1 -> v2)
 router.post('/goals', async (req, res, next) => {
-  const { username, targetSleepHours, targetDailyCalories, targetActivityMinutes, targetWeight } = req.body;
+  const { username, targetSleepHours, targetDailyCalories, targetActivityMinutes, targetWeight, targetActivities } = req.body;
   if (!username) {
     return res.status(400).json({ success: false, message: 'Username is required.' });
   }
@@ -64,8 +82,22 @@ router.post('/goals', async (req, res, next) => {
   const userStr = String(username).trim().toLowerCase();
   const sleepVal = parseFloat(targetSleepHours) || 8.0;
   const calsVal = parseFloat(targetDailyCalories) || 2000.0;
-  const actVal = parseInt(targetActivityMinutes) || 30;
   const weightVal = parseFloat(targetWeight) || 75.0;
+
+  // Process multiple target activities array
+  let activitiesList = [];
+  if (Array.isArray(targetActivities) && targetActivities.length > 0) {
+    activitiesList = targetActivities.map(a => ({
+      type: String(a.type || 'Workout').trim(),
+      durationMinutes: parseInt(a.durationMinutes) || 15,
+      quantity: a.quantity ? parseFloat(a.quantity) : null,
+      unit: a.unit ? String(a.unit).trim() : 'mins'
+    }));
+  } else {
+    activitiesList = [{ type: 'Workout', durationMinutes: parseInt(targetActivityMinutes) || 30, quantity: null, unit: 'mins' }];
+  }
+
+  const totalActMins = activitiesList.reduce((s, a) => s + (a.durationMinutes || 0), 0);
 
   let db;
   try {
@@ -87,14 +119,20 @@ router.post('/goals', async (req, res, next) => {
     const newGoalId = 'goal_' + crypto.randomUUID();
     const createdAt = new Date().toISOString();
     await db.run(
-      `INSERT INTO goals (goalId, username, version, targetSleepHours, targetDailyCalories, targetActivityMinutes, targetWeight, status, createdAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [newGoalId, userStr, newVersion, sleepVal, calsVal, actVal, weightVal, 'Active', createdAt]
+      `INSERT INTO goals (goalId, username, version, targetSleepHours, targetDailyCalories, targetActivityMinutes, targetWeight, targetActivities, status, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [newGoalId, userStr, newVersion, sleepVal, calsVal, totalActMins, weightVal, JSON.stringify(activitiesList), 'Active', createdAt]
     );
 
     await db.run('COMMIT');
 
     const updatedGoal = await db.get('SELECT * FROM goals WHERE goalId = ?', [newGoalId]);
+    try {
+      updatedGoal.targetActivities = JSON.parse(updatedGoal.targetActivities || '[]');
+    } catch(e) {
+      updatedGoal.targetActivities = activitiesList;
+    }
+
     return res.json({ success: true, message: `Goals updated successfully to version v${newVersion}.`, goal: updatedGoal });
 
   } catch (error) {
