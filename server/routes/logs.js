@@ -6,11 +6,47 @@ import { extractMealData } from '../services/mealExtractionService.js';
 
 const router = Router();
 
+import { checkMedicalSafety } from '../utils/medicalSafetyFilter.js';
+
 // POST /extract-meal - Extract nutrition data from free-text using External REST API
 router.post('/extract-meal', async (req, res, next) => {
-  const { textInput } = req.body;
+  const { textInput, username } = req.body;
   if (!textInput || !String(textInput).trim()) {
     return res.status(400).json({ success: false, message: 'Meal text input is required.' });
+  }
+
+  // Medical Safety Boundary Filter Check
+  const safetyCheck = checkMedicalSafety(textInput);
+  if (safetyCheck.isClinicalQuery) {
+    // Log MedicalSafetyBypass audit event
+    let db;
+    try {
+      db = await getDbConnection();
+      const auditId = 'audit_med_' + crypto.randomUUID();
+      await db.run(
+        `INSERT INTO audit_logs (logId, username, timestamp, eventType, description, details)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          auditId,
+          username ? String(username).trim().toLowerCase() : 'system_safety',
+          new Date().toISOString(),
+          'MedicalSafetyBypass',
+          'Clinical query or medical advice request intercepted by Safety Refusal Filter',
+          JSON.stringify({ textInput: String(textInput).trim(), matchedTerms: safetyCheck.matchedTerms, disclaimer: safetyCheck.disclaimer })
+        ]
+      );
+    } catch (e) {
+      console.error('Failed to log MedicalSafetyBypass:', e);
+    } finally {
+      if (db) await db.close();
+    }
+
+    return res.status(400).json({
+      success: false,
+      isMedicalRefusal: true,
+      message: safetyCheck.disclaimer,
+      disclaimer: safetyCheck.disclaimer
+    });
   }
 
   try {

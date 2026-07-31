@@ -3,7 +3,8 @@ import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import DataLogger from './components/DataLogger';
 import AIReviewPanel from './components/AIReviewPanel';
-import { LogOut, Activity, LayoutDashboard, PenTool, Sparkles } from 'lucide-react';
+import AuditDashboard from './components/AuditDashboard';
+import { LogOut, Activity, LayoutDashboard, PenTool, Sparkles, ShieldCheck } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -170,6 +171,26 @@ export default function App() {
           >
             <Sparkles size={16} style={{ color: '#10b981' }} /> AI Retrospective & Plans
           </button>
+
+          <button
+            onClick={() => setActiveTab('audit')}
+            style={{
+              background: activeTab === 'audit' ? '#1e293b' : 'transparent',
+              border: activeTab === 'audit' ? '1px solid rgba(255,255,255,0.08)' : 'none',
+              borderRadius: '8px',
+              padding: '0.75rem 1.5rem',
+              color: activeTab === 'audit' ? '#ffffff' : '#94a3b8',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontFamily: 'inherit',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <ShieldCheck size={16} style={{ color: '#fbbf24' }} /> Audit & Safety Panel
+          </button>
         </div>
 
         {/* Dynamic Component Content Panel */}
@@ -177,6 +198,7 @@ export default function App() {
           {activeTab === 'dashboard' && <Dashboard currentUser={currentUser} />}
           {activeTab === 'logger' && <DataLogger currentUser={currentUser} />}
           {activeTab === 'review' && <AIReviewPanel currentUser={currentUser} />}
+          {activeTab === 'audit' && <AuditDashboard currentUser={currentUser} />}
         </main>
 
       </div>
