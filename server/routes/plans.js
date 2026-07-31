@@ -295,10 +295,11 @@ router.post('/approve', async (req, res, next) => {
       await db.run('UPDATE goals SET status = "Superseded" WHERE username = ?', [userStr]);
 
       const goalId = 'goal_' + crypto.randomUUID();
+      const existingActivitiesStr = activeGoal ? activeGoal.targetActivities : null;
       await db.run(
-        `INSERT INTO goals (goalId, username, version, targetSleepHours, targetDailyCalories, targetActivityMinutes, targetWeight, status, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [goalId, userStr, goalVersion, newSleep, newCals, newAct, activeGoal ? activeGoal.targetWeight : 75.0, 'Active', createdAt]
+        `INSERT INTO goals (goalId, username, version, targetSleepHours, targetDailyCalories, targetActivityMinutes, targetWeight, targetActivities, status, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [goalId, userStr, goalVersion, newSleep, newCals, newAct, activeGoal ? activeGoal.targetWeight : 75.0, existingActivitiesStr, 'Active', createdAt]
       );
     }
 

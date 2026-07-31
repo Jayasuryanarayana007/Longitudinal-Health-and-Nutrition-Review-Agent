@@ -78,14 +78,43 @@ export async function generateRetrospectiveAndPlan(userStr, baseDateStr, weeklyS
     });
   }
 
-  const actKb = retrievedArticles.find(a => a.category === 'Activity') || knowledgeBaseArticles[2];
-  proposedRecommendations.push({
-    category: 'Activity',
-    proposal: `Maintain a baseline target of ${targetActivity} minutes of physical activity per day.`,
-    targetValue: targetActivity,
-    evidence: actKb.evidence,
-    kbArticleId: actKb.id
-  });
+  // Dynamic Multiple Activity Proposals based on user's Active Goals Profile
+  const actKb = retrievedArticles.find(a => a.category === 'Activity') || knowledgeBaseArticles.find(a => a.id === 'kb-active-recovery') || knowledgeBaseArticles[2];
+  
+  let targetActsList = [];
+  if (activeGoal && activeGoal.targetActivities) {
+    try {
+      targetActsList = typeof activeGoal.targetActivities === 'string'
+        ? JSON.parse(activeGoal.targetActivities)
+        : activeGoal.targetActivities;
+    } catch(e) {
+      targetActsList = [];
+    }
+  }
+
+  if (Array.isArray(targetActsList) && targetActsList.length > 0) {
+    targetActsList.forEach(act => {
+      const actType = act.type || 'Workout';
+      const duration = act.durationMinutes || 30;
+      const qtyStr = act.quantity ? ` (${act.quantity} ${act.unit || 'mins'})` : '';
+
+      proposedRecommendations.push({
+        category: `Activity (${actType})`,
+        proposal: `Maintain target of ${duration} mins/day for ${actType}${qtyStr} to support cardiovascular conditioning and Zone 2 active recovery.`,
+        targetValue: duration,
+        evidence: actKb.evidence,
+        kbArticleId: actKb.id
+      });
+    });
+  } else {
+    proposedRecommendations.push({
+      category: 'Activity',
+      proposal: `Maintain a baseline target of ${targetActivity} minutes of physical activity per day.`,
+      targetValue: targetActivity,
+      evidence: actKb.evidence,
+      kbArticleId: actKb.id
+    });
+  }
 
   // 6. Check optional Gemini API Key
   if (process.env.GEMINI_API_KEY) {
