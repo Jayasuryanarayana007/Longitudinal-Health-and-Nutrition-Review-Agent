@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, CheckCircle, ShieldAlert, ChevronDown, ChevronUp, BookOpen, Edit3, XCircle, FileText } from 'lucide-react';
 import GoalProfileCard from './GoalProfileCard';
+import ActivePlanCard from './ActivePlanCard';
 
 export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -143,6 +144,9 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
 
       {/* TOP CARD: Active Goals Profile Component */}
       <GoalProfileCard currentUser={currentUser} onGoalsUpdated={onGoalsUpdated} />
+
+      {/* TODAY'S ACTIVE APPROVED PLAN SUMMARY CARD */}
+      <ActivePlanCard currentUser={currentUser} refreshTrigger={success} />
 
       {/* Main Review Section */}
       <div className="auth-card" style={{ maxWidth: 'none', padding: '2rem' }}>

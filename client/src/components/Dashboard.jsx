@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Database, TrendingDown, Clock, Smile, Flame, ShieldAlert, CheckCircle, Calendar, AlertCircle } from 'lucide-react';
 import TrendCharts from './TrendCharts';
+import ActivePlanCard from './ActivePlanCard';
 
 export default function Dashboard({ currentUser }) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -213,6 +214,9 @@ export default function Dashboard({ currentUser }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
+          {/* TODAY'S ACTIVE APPROVED PLAN CARD */}
+          <ActivePlanCard currentUser={currentUser} />
+
           {/* Averages grid columns */}
           {summaryData && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>

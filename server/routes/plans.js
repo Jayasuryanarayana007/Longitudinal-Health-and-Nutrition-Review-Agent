@@ -5,6 +5,42 @@ import { generateRetrospectiveAndPlan } from '../services/aiWellnessAgent.js';
 
 const router = Router();
 
+// GET /api/plans/active - Retrieve current active plan for user
+router.get('/active', async (req, res, next) => {
+  const { username } = req.query;
+  if (!username) {
+    return res.status(400).json({ success: false, message: 'Username is required.' });
+  }
+
+  const userStr = String(username).trim().toLowerCase();
+  let db;
+  try {
+    db = await getDbConnection();
+
+    const activePlan = await db.get(
+      'SELECT * FROM plans WHERE username = ? AND status = "Active" ORDER BY version DESC LIMIT 1',
+      [userStr]
+    );
+
+    if (!activePlan) {
+      return res.json({ success: true, activePlan: null });
+    }
+
+    try {
+      activePlan.suggestions = JSON.parse(activePlan.suggestions || '[]');
+    } catch (e) {
+      activePlan.suggestions = [];
+    }
+
+    return res.json({ success: true, activePlan });
+
+  } catch (error) {
+    next(error);
+  } finally {
+    if (db) await db.close();
+  }
+});
+
 // GET /api/plans/goals - Retrieve active goals profile for user
 router.get('/goals', async (req, res, next) => {
   const { username } = req.query;
