@@ -2,8 +2,29 @@ import { Router } from 'express';
 import crypto from 'crypto';
 import { getDbConnection } from '../data/db.js';
 import { validateLogBoundaries, checkInconsistencies, detectMissingDays } from '../utils/validationEngine.js';
+import { extractMealData } from '../services/mealExtractionService.js';
 
 const router = Router();
+
+// POST /extract-meal - Extract nutrition data from free-text using External REST API
+router.post('/extract-meal', async (req, res, next) => {
+  const { textInput } = req.body;
+  if (!textInput || !String(textInput).trim()) {
+    return res.status(400).json({ success: false, message: 'Meal text input is required.' });
+  }
+
+  try {
+    const extracted = await extractMealData(textInput);
+    return res.json({
+      success: true,
+      textInput: String(textInput).trim(),
+      items: extracted.items,
+      isAiUncertain: extracted.isAiUncertain
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // POST / - Save or Update a daily log entry (weight, height, sleep, mood, energy, meals, activities)
 router.post('/', async (req, res, next) => {
@@ -113,17 +134,64 @@ router.post('/', async (req, res, next) => {
       );
     }
 
-    // Insert Meals
+    // Insert Meals & Write Audit Logs
     if (meals && meals.length > 0) {
       const createdAt = new Date().toISOString();
       for (const m of meals) {
         const mealId = 'meal_' + crypto.randomUUID();
-        const serializedItems = JSON.stringify(m.items || []);
+        const aiEstimatesStr = JSON.stringify(m.aiEstimates || m.items || []);
+        const correctedEstimatesStr = JSON.stringify(m.items || []);
+        const isUserCorrected = m.isUserCorrected ? 1 : 0;
+        const isAiUncertain = m.isAiUncertain ? 1 : 0;
+
         await db.run(
           `INSERT INTO meals (mealId, logId, username, textInput, aiEstimates, correctedEstimates, isUserCorrected, isAiUncertain, createdAt)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [mealId, logId, userStr, m.textInput, serializedItems, serializedItems, 0, 0, createdAt]
+          [mealId, logId, userStr, m.textInput || 'Meal Entry', aiEstimatesStr, correctedEstimatesStr, isUserCorrected, isAiUncertain, createdAt]
         );
+
+        // Audit Event 1: UserCorrection event
+        if (isUserCorrected === 1) {
+          const auditId = 'audit_' + crypto.randomUUID();
+          await db.run(
+            `INSERT INTO audit_logs (logId, username, timestamp, eventType, description, details)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              auditId,
+              userStr,
+              createdAt,
+              'UserCorrection',
+              `User corrected AI meal estimates for "${m.textInput || 'Meal'}"`,
+              JSON.stringify({
+                mealId,
+                textInput: m.textInput,
+                originalAiEstimates: m.aiEstimates || [],
+                userCorrectedEstimates: m.items || []
+              })
+            ]
+          );
+        }
+
+        // Audit Event 2: AIUncertainty event
+        if (isAiUncertain === 1) {
+          const auditId = 'audit_' + crypto.randomUUID();
+          await db.run(
+            `INSERT INTO audit_logs (logId, username, timestamp, eventType, description, details)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              auditId,
+              userStr,
+              createdAt,
+              'AIUncertainty',
+              `AI parsing flagged uncertainty for meal "${m.textInput || 'Meal'}"`,
+              JSON.stringify({
+                mealId,
+                textInput: m.textInput,
+                aiEstimates: m.items || []
+              })
+            ]
+          );
+        }
       }
     }
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash, Calendar, Info, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Plus, Trash, Calendar, Info, CheckCircle, AlertTriangle, Sparkles, Edit3 } from 'lucide-react';
 
 export default function DataLogger({ currentUser }) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -25,6 +25,12 @@ export default function DataLogger({ currentUser }) {
     intensity: 'Medium'
   });
 
+  // V4 Meal Extraction States
+  const [mealInputMode, setMealInputMode] = useState('text'); // 'text' or 'structured'
+  const [freeTextMeal, setFreeTextMeal] = useState('');
+  const [extracting, setExtracting] = useState(false);
+  const [extractedData, setExtractedData] = useState(null); // { textInput, items, aiEstimates, isAiUncertain, isUserCorrected }
+
   const [error, setError] = useState(null);
   const [warnings, setWarnings] = useState([]);
   const [success, setSuccess] = useState(null);
@@ -45,6 +51,83 @@ export default function DataLogger({ currentUser }) {
     const updated = [...newMealItems];
     updated.splice(index, 1);
     setNewMealItems(updated);
+  };
+
+  // V4: External REST API Meal Extraction Handler
+  const handleExtractMeal = async () => {
+    if (!freeTextMeal.trim()) return;
+    setExtracting(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/logs/extract-meal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ textInput: freeTextMeal.trim() })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to extract nutrition data from text.');
+      }
+
+      setExtractedData({
+        textInput: freeTextMeal.trim(),
+        items: data.items || [],
+        aiEstimates: JSON.parse(JSON.stringify(data.items || [])), // deep copy of original AI output
+        isAiUncertain: data.isAiUncertain || false,
+        isUserCorrected: false
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const handleExtractedItemChange = (index, field, val) => {
+    if (!extractedData) return;
+    const updatedItems = [...extractedData.items];
+    updatedItems[index][field] = field === 'foodItem' ? val : parseFloat(val) || 0;
+    setExtractedData({
+      ...extractedData,
+      items: updatedItems,
+      isUserCorrected: true
+    });
+  };
+
+  const addExtractedItemRow = () => {
+    if (!extractedData) return;
+    setExtractedData({
+      ...extractedData,
+      items: [...extractedData.items, { foodItem: '', calories: 0, protein: 0, carbs: 0, fats: 0 }],
+      isUserCorrected: true
+    });
+  };
+
+  const removeExtractedItemRow = (index) => {
+    if (!extractedData) return;
+    const updated = [...extractedData.items];
+    updated.splice(index, 1);
+    setExtractedData({
+      ...extractedData,
+      items: updated,
+      isUserCorrected: true
+    });
+  };
+
+  const handleAddExtractedMeal = () => {
+    if (!extractedData || extractedData.items.length === 0) return;
+    setMeals([...meals, {
+      textInput: extractedData.textInput,
+      items: extractedData.items,
+      aiEstimates: extractedData.aiEstimates,
+      isUserCorrected: extractedData.isUserCorrected,
+      isAiUncertain: extractedData.isAiUncertain
+    }]);
+
+    setFreeTextMeal('');
+    setExtractedData(null);
   };
 
   const handleAddMeal = (e) => {
@@ -432,11 +515,57 @@ export default function DataLogger({ currentUser }) {
           </div>
         </div>
 
-        {/* SECTION 3: Meals & Food Items Logger */}
+        {/* SECTION 3: Meals & Food Items Logger (V4 Dual Mode) */}
         <div className="auth-card" style={{ maxWidth: 'none', padding: '2rem' }}>
-          <h3 style={{ fontSize: '1.1rem', margin: '0 0 1.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '0.75rem', color: '#f8fafc' }}>
-            3. Meal & Calorie Intake
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '0.75rem', marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#f8fafc' }}>
+              3. Meal & Calorie Intake
+            </h3>
+
+            {/* V4 Mode Switcher Button Group */}
+            <div style={{ display: 'flex', background: '#151d30', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <button
+                type="button"
+                onClick={() => setMealInputMode('text')}
+                style={{
+                  background: mealInputMode === 'text' ? '#10b981' : 'transparent',
+                  color: mealInputMode === 'text' ? '#ffffff' : '#94a3b8',
+                  border: 'none',
+                  padding: '0.4rem 0.9rem',
+                  borderRadius: '6px',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Sparkles size={14} /> AI Text Extractor
+              </button>
+              <button
+                type="button"
+                onClick={() => setMealInputMode('structured')}
+                style={{
+                  background: mealInputMode === 'structured' ? '#10b981' : 'transparent',
+                  color: mealInputMode === 'structured' ? '#ffffff' : '#94a3b8',
+                  border: 'none',
+                  padding: '0.4rem 0.9rem',
+                  borderRadius: '6px',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Plus size={14} /> Direct Structured Mode
+              </button>
+            </div>
+          </div>
 
           {/* Current Logged Meals List */}
           {meals.length > 0 && (
@@ -451,7 +580,19 @@ export default function DataLogger({ currentUser }) {
                     border: '1px solid rgba(255,255,255,0.05)'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', borderBottom: '1px dashed rgba(255,255,255,0.04)', paddingBottom: '0.4rem' }}>
-                      <strong style={{ color: '#06b6d4', fontSize: '0.95rem' }}>{meal.textInput}</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <strong style={{ color: '#06b6d4', fontSize: '0.95rem' }}>{meal.textInput}</strong>
+                        {meal.isUserCorrected && (
+                          <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
+                            User Corrected
+                          </span>
+                        )}
+                        {meal.isAiUncertain && (
+                          <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' }}>
+                            AI Uncertain
+                          </span>
+                        )}
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{mealCals} kcal</span>
                         <button
@@ -482,112 +623,267 @@ export default function DataLogger({ currentUser }) {
             </div>
           )}
 
-          {/* Add Meal Sub-form */}
-          <div style={{
-            background: 'rgba(15, 23, 42, 0.2)',
-            padding: '1.25rem',
-            borderRadius: '10px',
-            border: '1px solid rgba(255,255,255,0.04)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem'
-          }}>
-            <div className="auth-input-group" style={{ marginBottom: 0 }}>
-              <label className="auth-label">Meal Name</label>
-              <input
-                type="text"
-                value={newMealName}
-                onChange={(e) => setNewMealName(e.target.value)}
-                placeholder="e.g. Lunch (Chicken Salad)"
-                className="auth-input"
-                style={{ paddingLeft: '0.75rem' }}
-              />
-            </div>
+          {/* MODE 1: Text-Based AI Extractor */}
+          {mealInputMode === 'text' && (
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.2)',
+              padding: '1.25rem',
+              borderRadius: '10px',
+              border: '1px solid rgba(255,255,255,0.04)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem'
+            }}>
+              <div className="auth-input-group" style={{ marginBottom: 0 }}>
+                <label className="auth-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Describe Your Meal (Natural Language Text)</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Powered by External REST API (Open Food Facts / USDA)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={freeTextMeal}
+                  onChange={(e) => setFreeTextMeal(e.target.value)}
+                  placeholder="e.g. Had 2 Rotis with Dal Makhani, 1 cup Rice, and Black Coffee for lunch"
+                  className="auth-input"
+                  style={{ padding: '0.75rem', height: 'auto', fontFamily: 'inherit', resize: 'vertical' }}
+                />
+              </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <label className="auth-label">Food Items & Nutrition Data</label>
-              
-              {newMealItems.map((item, index) => (
-                <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    value={item.foodItem}
-                    onChange={(e) => handleMealItemChange(index, 'foodItem', e.target.value)}
-                    placeholder="Food Item (e.g. Oatmeal)"
-                    className="auth-input"
-                    style={{ paddingLeft: '0.75rem' }}
-                  />
-                  <input
-                    type="number"
-                    value={item.calories}
-                    onChange={(e) => handleMealItemChange(index, 'calories', e.target.value)}
-                    placeholder="Kcal"
-                    className="auth-input"
-                    style={{ paddingLeft: '0.75rem' }}
-                  />
-                  <input
-                    type="number"
-                    value={item.protein}
-                    onChange={(e) => handleMealItemChange(index, 'protein', e.target.value)}
-                    placeholder="Prot (g)"
-                    className="auth-input"
-                    style={{ paddingLeft: '0.75rem' }}
-                  />
-                  <input
-                    type="number"
-                    value={item.carbs}
-                    onChange={(e) => handleMealItemChange(index, 'carbs', e.target.value)}
-                    placeholder="Carb (g)"
-                    className="auth-input"
-                    style={{ paddingLeft: '0.75rem' }}
-                  />
-                  <input
-                    type="number"
-                    value={item.fats}
-                    onChange={(e) => handleMealItemChange(index, 'fats', e.target.value)}
-                    placeholder="Fat (g)"
-                    className="auth-input"
-                    style={{ paddingLeft: '0.75rem' }}
-                  />
-                  {newMealItems.length > 1 && (
+              <button
+                type="button"
+                onClick={handleExtractMeal}
+                className="auth-submit-btn"
+                style={{ width: 'fit-content', marginTop: 0, padding: '0.65rem 1.4rem', fontSize: '0.85rem' }}
+                disabled={extracting || !freeTextMeal.trim()}
+              >
+                {extracting ? (
+                  <div className="spinner"></div>
+                ) : (
+                  <>
+                    <Sparkles size={16} /> Extract Nutrition Data
+                  </>
+                )}
+              </button>
+
+              {/* Extracted Review & Override Card */}
+              {extractedData && (
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  borderRadius: '10px',
+                  padding: '1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem',
+                  marginTop: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Edit3 size={16} style={{ color: '#10b981' }} />
+                      <strong style={{ fontSize: '0.95rem', color: '#f8fafc' }}>Review & Edit Parsed Items</strong>
+                    </div>
+                    {extractedData.isUserCorrected && (
+                      <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: '600' }}>
+                        ✍️ Modified by user (will record UserCorrection audit)
+                      </span>
+                    )}
+                  </div>
+
+                  {extractedData.isAiUncertain && (
+                    <div style={{ fontSize: '0.8rem', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.1)', padding: '0.5rem 0.75rem', borderRadius: '6px' }}>
+                      ⚠️ AI Uncertainty Flag: One or more food items were ambiguous or returned standard defaults. Please verify calories and macros below.
+                    </div>
+                  )}
+
+                  {/* Interactive Editable Grid */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {extractedData.items.map((item, index) => (
+                      <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          value={item.foodItem}
+                          onChange={(e) => handleExtractedItemChange(index, 'foodItem', e.target.value)}
+                          className="auth-input"
+                          style={{ paddingLeft: '0.75rem' }}
+                        />
+                        <input
+                          type="number"
+                          value={item.calories}
+                          onChange={(e) => handleExtractedItemChange(index, 'calories', e.target.value)}
+                          className="auth-input"
+                          style={{ paddingLeft: '0.75rem' }}
+                        />
+                        <input
+                          type="number"
+                          value={item.protein}
+                          onChange={(e) => handleExtractedItemChange(index, 'protein', e.target.value)}
+                          className="auth-input"
+                          style={{ paddingLeft: '0.75rem' }}
+                        />
+                        <input
+                          type="number"
+                          value={item.carbs}
+                          onChange={(e) => handleExtractedItemChange(index, 'carbs', e.target.value)}
+                          className="auth-input"
+                          style={{ paddingLeft: '0.75rem' }}
+                        />
+                        <input
+                          type="number"
+                          value={item.fats}
+                          onChange={(e) => handleExtractedItemChange(index, 'fats', e.target.value)}
+                          className="auth-input"
+                          style={{ paddingLeft: '0.75rem' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeExtractedItemRow(index)}
+                          style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                        >
+                          <Trash size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                     <button
                       type="button"
-                      onClick={() => removeMealItemRow(index)}
-                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                      onClick={addExtractedItemRow}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '6px',
+                        color: '#e2e8f0',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer'
+                      }}
                     >
-                      <Trash size={16} />
+                      + Add Custom Row
                     </button>
-                  )}
-                </div>
-              ))}
-            </div>
 
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button
-                type="button"
-                onClick={addMealItemRow}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '6px',
-                  color: '#e2e8f0',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer'
-                }}
-              >
-                + Add Item Row
-              </button>
-              <button
-                type="button"
-                onClick={handleAddMeal}
-                className="auth-submit-btn"
-                style={{ width: 'fit-content', marginTop: 0, padding: '0.6rem 1.2rem', fontSize: '0.85rem' }}
-              >
-                <Plus size={16} /> Add Meal to Log
-              </button>
+                    <button
+                      type="button"
+                      onClick={handleAddExtractedMeal}
+                      className="auth-submit-btn"
+                      style={{ width: 'fit-content', marginTop: 0, padding: '0.6rem 1.2rem', fontSize: '0.85rem' }}
+                    >
+                      <CheckCircle size={16} /> Add Extracted Meal to Daily Log
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
+
+          {/* MODE 2: Direct Structured Mode */}
+          {mealInputMode === 'structured' && (
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.2)',
+              padding: '1.25rem',
+              borderRadius: '10px',
+              border: '1px solid rgba(255,255,255,0.04)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              <div className="auth-input-group" style={{ marginBottom: 0 }}>
+                <label className="auth-label">Meal Name</label>
+                <input
+                  type="text"
+                  value={newMealName}
+                  onChange={(e) => setNewMealName(e.target.value)}
+                  placeholder="e.g. Lunch (Chicken Salad)"
+                  className="auth-input"
+                  style={{ paddingLeft: '0.75rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <label className="auth-label">Food Items & Nutrition Data</label>
+                
+                {newMealItems.map((item, index) => (
+                  <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      value={item.foodItem}
+                      onChange={(e) => handleMealItemChange(index, 'foodItem', e.target.value)}
+                      placeholder="Food Item (e.g. Oatmeal)"
+                      className="auth-input"
+                      style={{ paddingLeft: '0.75rem' }}
+                    />
+                    <input
+                      type="number"
+                      value={item.calories}
+                      onChange={(e) => handleMealItemChange(index, 'calories', e.target.value)}
+                      placeholder="Kcal"
+                      className="auth-input"
+                      style={{ paddingLeft: '0.75rem' }}
+                    />
+                    <input
+                      type="number"
+                      value={item.protein}
+                      onChange={(e) => handleMealItemChange(index, 'protein', e.target.value)}
+                      placeholder="Prot (g)"
+                      className="auth-input"
+                      style={{ paddingLeft: '0.75rem' }}
+                    />
+                    <input
+                      type="number"
+                      value={item.carbs}
+                      onChange={(e) => handleMealItemChange(index, 'carbs', e.target.value)}
+                      placeholder="Carb (g)"
+                      className="auth-input"
+                      style={{ paddingLeft: '0.75rem' }}
+                    />
+                    <input
+                      type="number"
+                      value={item.fats}
+                      onChange={(e) => handleMealItemChange(index, 'fats', e.target.value)}
+                      placeholder="Fat (g)"
+                      className="auth-input"
+                      style={{ paddingLeft: '0.75rem' }}
+                    />
+                    {newMealItems.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeMealItemRow(index)}
+                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                      >
+                        <Trash size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={addMealItemRow}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '6px',
+                    color: '#e2e8f0',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  + Add Item Row
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddMeal}
+                  className="auth-submit-btn"
+                  style={{ width: 'fit-content', marginTop: 0, padding: '0.6rem 1.2rem', fontSize: '0.85rem' }}
+                >
+                  <Plus size={16} /> Add Meal to Log
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Submit Logs Button */}
