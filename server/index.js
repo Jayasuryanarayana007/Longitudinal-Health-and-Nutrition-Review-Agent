@@ -7,6 +7,7 @@ import { initDb } from './data/db.js';
 
 import authRoutes from './routes/auth.js';
 import logRoutes from './routes/logs.js';
+import plansRoutes from './routes/plans.js';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ const dbInitPromise = initDb().catch(err => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/plans', plansRoutes);
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
