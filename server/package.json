@@ -1,7 +1,7 @@
 {
   "name": "longitudinal-health-review-server",
   "version": "1.0.0",
-  "description": "Express backend with SQLite database and Gemini integration",
+  "description": "Express backend with SQLite database, Groq LLM API and RAG pipeline",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -10,7 +10,6 @@
     "test": "node test.js"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.16.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

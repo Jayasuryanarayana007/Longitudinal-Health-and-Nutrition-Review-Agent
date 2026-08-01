@@ -142,6 +142,25 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
         </p>
       </div>
 
+      {/* Mandatory Medical Disclaimer Banner */}
+      <div style={{
+        background: 'rgba(239, 68, 68, 0.08)',
+        border: '1px solid rgba(239, 68, 68, 0.25)',
+        borderRadius: '10px',
+        padding: '0.85rem 1.25rem',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        fontSize: '0.82rem',
+        color: '#fca5a5',
+        lineHeight: '1.4'
+      }}>
+        <ShieldAlert size={20} style={{ color: '#ef4444', flexShrink: 0 }} />
+        <div>
+          <strong style={{ color: '#f87171' }}>Medical & Safety Notice:</strong> This application is an AI-assisted lifestyle & wellness review tool. It does not provide medical diagnosis, prescribe treatments, or guarantee health outcomes. Always consult a licensed physician or healthcare professional for clinical advice.
+        </div>
+      </div>
+
       {/* TOP CARD: Active Goals Profile Component */}
       <GoalProfileCard currentUser={currentUser} onGoalsUpdated={onGoalsUpdated} />
 

@@ -1,6 +1,6 @@
 # 🩺 Longitudinal Health & Nutrition Review Agent
 
-A full-stack, stateful AI-powered wellness application built to track daily health metrics, detect data anomalies, extract nutrition from natural language text via live REST APIs, perform evidence-backed RAG retrospectives, and manage versioned health goals (`v1` → `v2`) with human-in-the-loop approval panels.
+A full-stack, stateful AI-powered wellness application built to track daily health metrics, detect data anomalies, extract nutrition from natural language text via live REST APIs, perform evidence-backed RAG retrospectives using Groq LLM (`llama-3.3-70b-versatile`), and manage versioned health goals (`v1` → `v2`) with human-in-the-loop approval panels.
 
 ---
 
@@ -30,7 +30,7 @@ flowchart TD
 
     subgraph Data ["Database & External Services"]
         SQLite[("SQLite Database\n(users, daily_logs, meals, activities, goals, plans, audit_logs)")]
-        KB[("Knowledge Base\n(10 Clinical Evidence Articles)")]
+        KB[("Knowledge Base\n(10 Clinical Evidence Articles + Vector Search)")]
         Groq_API["Groq LLM API\n(Llama-3.3-70b-versatile)"]
         OFF_API["Open Food Facts REST API\n(Live Nutrition Queries)"]
     end
@@ -48,29 +48,46 @@ flowchart TD
 
 ---
 
-## 🌟 Key Version Features (V1 – V6)
+## 🌟 Key Features & Scope
 
-* **V1: Skeleton, Auth Gateway & SQLite Storage**: User signup/login with Date of Birth and Sex collection, salted SHA-256 hashing, and user-isolated database tables.
-* **V2: Daily Metrics & Summaries**: Ingestion for weight, height, sleep, mood, energy, structured workouts, and meals. Server-side math averages for 7-day and 30-day periods.
-* **V3: Data Integrity Engine & SVG Charts**:
-  * 🛑 **Blocking Anomaly Rules**: Sleep < 3h & Energy ≥ 9 paradox; Active > 120m & Calories < 1000 kcal extreme deficit.
-  * ⚠️ **Non-Blocking Warnings**: 24h weight jump (+3kg) and high calorie/weight loss contrast.
-  * ℹ️ **Gap Scanner**: Past 7-day missing log detector.
-  * 📊 **Pure SVG Visualizations**: Zero-dependency SVG Line Charts & Bar Charts with 7d/30d range toggling.
-* **V4: Text Meal Extraction & User Correction Auditing**:
-  * 📝 **AI Text Extractor**: Plain text parsing (*"Had 2 Rotis with Dal Makhani"*) via live Open Food Facts REST API with quantity multipliers (`2x Rotis`).
-  * ✍️ **Interactive Override Grid**: Editable inputs for calories and macros before saving.
-  * 📋 **Audit Event Logging**: SQLite records for `UserCorrection` and `AIUncertainty` events.
-* **V5: AI Wellness Agent & Plan Versioning (`v1` → `v2`)**:
-  * 🎯 **Active Goals Profile Card**: Supports **Multiple Target Physical Activities** (*Running, Walking, Cycling, Gym*) with versioning preservation.
-  * 🧠 **Facts vs. Interpretations Separator**: Distinguishes factual logged stats from contextual AI hypotheses.
-  * 🔬 **Expandable Evidence Dropdowns**: `ChevronDown`/`ChevronUp` chevrons beside every suggestion revealing clinical evidence citations (*Sleep Foundation, ACSM, NIH PubMed*).
-  * ✍️ **Editable Retrospective Narrative**: Rich text box for customizing review summaries.
-  * ✅ **Interactive Plan Approval Panel**: Explicit **Approve & Apply Plan** button (syncs targets across Dashboard) vs. **Decline** modal.
-* **V6: Medical Safety Boundaries & Auditing Control Panel**:
-  * ⚠️ **Medical Refusal Filter**: Intercepts clinical queries (*prescriptions, diagnosis, drug dosages*) with HTTP 400 & mandatory disclaimer, logging `MedicalSafetyBypass` events.
-  * 🛡️ **Audit Logs Explorer**: Chronological table displaying all event types (`UserCorrection`, `AIUncertainty`, `PlanModification`, `RejectedRecommendation`, `MedicalSafetyBypass`, `WorkflowFailure`) with expandable JSON viewers.
-  * ⚡ **API Resilience Simulators**: Manual triggers for **504 Gateway Timeout** and **503 Service Unavailable** error handling tests.
+### 1. Completed Scope
+* **User Profile & Multi-User Isolation**: User signup/login with Date of Birth and Sex collection, salted password hashing, and complete data isolation in SQLite.
+* **Dual-Mode Data Logger**: Structured inputs for weight, height, sleep, mood, energy, workouts, and natural text meal parsing (*"Had 2 Rotis with Dal Makhani"*) via live Open Food Facts REST API with quantity multipliers (`2x Rotis`).
+* **Interactive AI Meal Estimate Override**: Editable grid to adjust calories/macros before saving, logging `UserCorrection` and `AIUncertainty` audit events.
+* **Deterministic Summaries & SVG Trend Charts**: 7-day and 30-day aggregates for weight, sleep, calories, and workouts visualized via zero-dependency responsive SVG Line & Bar charts with hover tooltips. Empty state hides charts when 0 logs exist.
+* **Data Integrity Engine & Inconsistency Rules**:
+  * 🛑 **Blocking Rules**: Sleep < 3h & Energy ≥ 9 paradox; Activity > 120m & Calories < 1000 kcal extreme deficit.
+  * ⚠️ **Non-Blocking Warnings**: 24h weight jump (+3kg) and calorie vs weight loss contrast.
+  * ℹ️ **Gap Scanner**: Past 7-day missing log entry detector.
+* **Versioned Goals & Active Plans (`v1` → `v2`)**: Active Goals Profile supporting multiple target activities (*Running, Walking, Cycling*) with version preservation. Unconfigured by default for brand new users.
+* **AI Wellness Agent & RAG Pipeline**:
+  * Powered by Groq API (`llama-3.3-70b-versatile`) with JSON mode and deterministic fallback engine.
+  * Hybrid Vector Search: Dense Cosine Similarity + Sparse BM25 Okapi + Reciprocal Rank Fusion (RRF).
+  * Clinical Evidence: 10 GRADE A/B articles with DOIs and MeSH ontology tags.
+  * **Facts vs. Interpretations Separator**: Visual cyan (Facts) vs purple (Interpretations) panels.
+  * **Editable Retrospective**: Editable narrative textarea before approval.
+  * **Human-in-the-Loop Approval**: Explicit Approve & Apply vs Decline modal with required rejection reasons.
+* **Medical Safety Boundaries & Audit Control Panel**:
+  * Intercepts clinical queries (*prescriptions, diagnosis, dosages*) with HTTP 400 & mandatory disclaimer.
+  * Audit logs explorer displaying `UserCorrection`, `AIUncertainty`, `PlanModification`, `RejectedRecommendation`, `MedicalSafetyBypass`, and `WorkflowFailure` events.
+  * Failure simulators for **504 Gateway Timeout** and **503 Service Unavailable**.
+
+---
+
+### 🚫 Intentionally Excluded Scope
+The following features were intentionally excluded from the current scope to focus on core agentic review workflow quality, data integrity, and deterministic reliability:
+* **Clinical Diagnosis & Medication Prescriptions**: Out of scope due to safety boundaries; the agent is strictly a wellness & lifestyle review tool.
+* **Real-time WebSockets / Push Notifications**: Retrospective reviews are generated on-demand rather than streaming real-time alerts.
+* **Direct Hardware Wearable Integrations**: (e.g. Apple HealthKit / Fitbit OAuth APIs) Data entry is performed via structured forms and AI text parsing.
+* **Multi-tenant Cloud Database Clusters**: SQLite was chosen for zero-dependency local data persistence and deterministic test reproducibility.
+
+---
+
+## ⚠️ Known Limitations
+
+1. **SQLite Single-Writer Concurrency**: SQLite operates with file-level locking during write transactions. While perfect for single-server instances and MVPs, high-concurrency multi-region deployments require migrating to PostgreSQL.
+2. **Password Hashing**: Passwords use SHA-256 string hashing for demonstration simplicity; production deployments should upgrade to `bcrypt` or `argon2` with salt rounds.
+3. **External REST API Latency**: The Open Food Facts API is queried with an `AbortController` 1.5-second timeout. If the external network times out, the system seamlessly falls back to local nutritional maps.
 
 ---
 
@@ -90,15 +107,20 @@ flowchart TD
 
 2. **Install Dependencies**:
    ```bash
-   npm run install-all
+   npm run install:all
    ```
 
-3. **Configure Environment Variables** (Optional):
+3. **Configure Environment Variables**:
    Copy `.env.example` to `.env`:
    ```bash
    cp .env.example .env
    ```
-   *(If `GEMINI_API_KEY` is not provided, the application seamlessly uses the smart local RAG fallback engine).*
+   Add your Groq API Key to `.env` (optional — if omitted, local deterministic RAG fallback engages automatically):
+   ```env
+   GROQ_API_KEY=your_groq_api_key_here
+   PORT=5000
+   NODE_ENV=development
+   ```
 
 4. **Launch Application in Development Mode**:
    ```bash
@@ -106,6 +128,31 @@ flowchart TD
    ```
    * **Frontend**: Open `http://localhost:5173/` in your browser.
    * **Backend API**: Listening at `http://localhost:5000/`.
+
+---
+
+## 🌐 Production Deployment Guide
+
+### Production Build & Launch
+To test production mode locally:
+```bash
+npm run build
+npm start
+```
+The Express server automatically serves the static production SPA bundle from `client/dist`.
+
+### Deployment to Render.com / Railway / Fly.io
+
+1. **Web Service Setup**: Connect repository to Render.com or Railway.
+2. **Build & Start Commands**:
+   * **Build Command**: `npm run build`
+   * **Start Command**: `npm start`
+3. **Environment Variables**:
+   * `GROQ_API_KEY`: Your Groq API Key
+   * `NODE_ENV`: `production`
+   * `PORT`: `10000` (or platform default)
+4. **Persistent Disk Volume (Crucial for SQLite Data Persistence)**:
+   * Mount a persistent disk volume to `/server/data` so `database.sqlite` persists across container restarts.
 
 ---
 
@@ -126,6 +173,7 @@ node scratch/master_breakage_check.mjs
 * V5 Edge-Case Suite: `node scratch/v5_breakage_check.mjs`
 * V6 Medical Safety & Failure Suite: `node scratch/v6_tests.mjs`
 * End-to-End Workflow Verification: `node scratch/e2e_full_workflow_test.mjs`
+* Edge Cases (0 logs / 0 goals) Verification: `node scratch/edge_cases_test.mjs`
 
 ---
 
@@ -137,13 +185,13 @@ node scratch/master_breakage_check.mjs
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── AIReviewPanel.jsx     # AI Retrospective, RAG Review & Plan Approval Panel
-│   │   │   ├── ActivePlanCard.jsx    # Today's Active Approved Protocol & Guidelines Summary
+│   │   │   ├── ActivePlanCard.jsx    # Today's Active Approved Protocol Summary
 │   │   │   ├── AuditDashboard.jsx   # Audit Logs Explorer & API Failure Simulators Panel
 │   │   │   ├── Auth.jsx             # Signup / Login Screens
 │   │   │   ├── Dashboard.jsx        # Summaries, SVG Trend Charts & Gap Scanner Banner
-│   │   │   ├── DataLogger.jsx       # Dual Input Mode (Structured & Text Extractor)
+│   │   │   ├── DataLogger.jsx       # Dual Input Mode (Structured & AI Text Extractor)
 │   │   │   ├── GoalProfileCard.jsx  # Active Goals Profile & Multiple Target Activities
-│   │   │   └── TrendCharts.jsx      # Zero-Dependency SVG Line Charts & Bar Charts
+│   │   │   └── TrendCharts.jsx      # Zero-Dependency SVG Line & Bar Charts
 │   │   ├── App.jsx                  # Top Navigation Bar & Workspace Router
 │   │   ├── index.css                # Glassmorphic Dark-Theme Styling System
 │   │   └── main.jsx
@@ -159,18 +207,20 @@ node scratch/master_breakage_check.mjs
 │   │   ├── logs.js                  # Daily metrics logger & text meal extraction endpoints
 │   │   └── plans.js                 # Goals CRUD, RAG review generator & plan approvals
 │   ├── services/
-│   │   ├── aiWellnessAgent.js       # RAG retrieval, Facts vs Interpretations, Gemini API
+│   │   ├── aiWellnessAgent.js       # RAG retrieval, Facts vs Interpretations, Groq LLM API
 │   │   ├── foodApiService.js        # Open Food Facts REST API service with timeout signals
-│   │   └── mealExtractionService.js # Text tokenizer & quantity multiplier parser
+│   │   ├── groqService.js           # Groq API client (llama-3.3-70b-versatile)
+│   │   ├── mealExtractionService.js # Text tokenizer & quantity multiplier parser
+│   │   └── vectorSearchService.js   # Cosine Vector Similarity + BM25 + Reciprocal Rank Fusion
 │   ├── utils/
-│   │   ├── hash.js                  # SHA-256 password hashing
+│   │   ├── hash.js                  # Password hashing
 │   │   ├── medicalSafetyFilter.js   # Clinical query scanner & disclaimer interceptor
 │   │   └── validationEngine.js      # Range checks, blocking rules & gap scanner
 │   └── index.js                     # Main Express server entry point
 │
-├── scratch/                     # Automated Test Suites (V1 through V6)
+├── scratch/                     # Automated Test Suites (64 test cases)
 ├── .env.example                 # Environment variable configuration template
-├── package.json                 # Root dependencies & concurrent start scripts
+├── package.json                 # Root dependencies & build/start scripts
 └── README.md                    # System documentation
 ```
 
