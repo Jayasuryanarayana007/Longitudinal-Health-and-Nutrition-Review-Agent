@@ -1,127 +1,180 @@
-# Longitudinal Health & Nutrition Review Agent
+# 🩺 Longitudinal Health & Nutrition Review Agent
 
-A stateful wellness application built using the full-stack architecture of **React (Vite) + Node.js (Express) + SQLite** with secure server-side **Gemini API** integration.
-
-This application provides a highly polished, responsive dark-mode portal enabling users to log wellness metrics (sleep, activity, weight, energy, mood, meals), perform RAG-based AI wellness reviews, approve versioned active plans, and explore system audit logs.
+A full-stack, stateful AI-powered wellness application built to track daily health metrics, detect data anomalies, extract nutrition from natural language text via live REST APIs, perform evidence-backed RAG retrospectives, and manage versioned health goals (`v1` → `v2`) with human-in-the-loop approval panels.
 
 ---
 
-## 🛠️ Technology Stack
+## 📐 Architecture Overview
 
-* **Frontend**: React (Vite), Vanilla CSS (Glassmorphism & dark-mode custom properties), Lucide Icons, and custom responsive SVG Charts (no bloated charting libraries).
-* **Backend**: Node.js, Express.js (REST API, CORS config, and static production assets serving).
-* **Database**: SQLite (`database.sqlite` file-based database) with relational schemas and native JSON column parsing.
-* **AI Integration**: Official Google `@google/generative-ai` SDK communicating securely from the backend to the **Gemini 1.5/2.0 Flash** models.
-* **AI Fallback**: Local Heuristic Parser utilizing regex and a 200 Indian/American food dictionary, ensuring the app is 100% functional even offline.
+```mermaid
+flowchart TD
+    subgraph Client ["React Single Page Application (Vite + Vanilla CSS)"]
+        UI_Nav["Top Navigation Bar\n(Dashboard | Log Metrics | AI Retrospective | Audit Panel)"]
+        Dash["Dashboard & Trend Visualizations\n(SVG Line/Bar Charts + ActivePlanCard)"]
+        Logger["Data Logger\n(Dual Mode: Structured & AI Text Extractor)"]
+        Review["AI Review Panel\n(GoalProfileCard + Facts vs Interpretations + Evidence Dropdowns)"]
+        Audit["Audit & Safety Panel\n(Audit Logs Explorer + Failure Simulators)"]
+    end
+
+    subgraph Server ["Express.js Backend API Engine (Port 5000)"]
+        AuthRoute["/api/auth (User Session Isolation)"]
+        LogRoute["/api/logs (Ingestion & Validation Engine)"]
+        PlanRoute["/api/plans (Goals Profile & RAG Review Generator)"]
+        AuditRoute["/api/audit (Audit Event Explorer & Simulators)"]
+        
+        ValEngine["Validation Engine\n(Blocking Rules & Warning Banners)"]
+        RAGEngine["AI Wellness Agent\n(RAG Lookups & Gemini API / Fallback)"]
+        SafetyFilter["Medical Safety Boundary Filter\n(Clinical Interceptor & Disclaimer)"]
+        MealExtractor["Meal Extraction Service\n(Tokenization & Multiplier Parser)"]
+    end
+
+    subgraph Data ["Database & External Services"]
+        SQLite[("SQLite Database\n(users, daily_logs, meals, activities, goals, plans, audit_logs)")]
+        KB[("Knowledge Base\n(10 Clinical Evidence Articles)")]
+        OFF_API["Open Food Facts REST API\n(Live Nutrition Queries)"]
+    end
+
+    Client <--> Server
+    LogRoute --> ValEngine
+    LogRoute --> MealExtractor
+    MealExtractor <--> OFF_API
+    PlanRoute --> RAGEngine
+    RAGEngine <--> KB
+    LogRoute --> SafetyFilter
+    Server <--> SQLite
+```
 
 ---
 
-## 🚀 Getting Started
+## 🌟 Key Version Features (V1 – V6)
 
-### 📋 Prerequisites
-* Node.js (version 18 or above recommended)
-* npm (Node Package Manager)
+* **V1: Skeleton, Auth Gateway & SQLite Storage**: User signup/login with Date of Birth and Sex collection, salted SHA-256 hashing, and user-isolated database tables.
+* **V2: Daily Metrics & Summaries**: Ingestion for weight, height, sleep, mood, energy, structured workouts, and meals. Server-side math averages for 7-day and 30-day periods.
+* **V3: Data Integrity Engine & SVG Charts**:
+  * 🛑 **Blocking Anomaly Rules**: Sleep < 3h & Energy ≥ 9 paradox; Active > 120m & Calories < 1000 kcal extreme deficit.
+  * ⚠️ **Non-Blocking Warnings**: 24h weight jump (+3kg) and high calorie/weight loss contrast.
+  * ℹ️ **Gap Scanner**: Past 7-day missing log detector.
+  * 📊 **Pure SVG Visualizations**: Zero-dependency SVG Line Charts & Bar Charts with 7d/30d range toggling.
+* **V4: Text Meal Extraction & User Correction Auditing**:
+  * 📝 **AI Text Extractor**: Plain text parsing (*"Had 2 Rotis with Dal Makhani"*) via live Open Food Facts REST API with quantity multipliers (`2x Rotis`).
+  * ✍️ **Interactive Override Grid**: Editable inputs for calories and macros before saving.
+  * 📋 **Audit Event Logging**: SQLite records for `UserCorrection` and `AIUncertainty` events.
+* **V5: AI Wellness Agent & Plan Versioning (`v1` → `v2`)**:
+  * 🎯 **Active Goals Profile Card**: Supports **Multiple Target Physical Activities** (*Running, Walking, Cycling, Gym*) with versioning preservation.
+  * 🧠 **Facts vs. Interpretations Separator**: Distinguishes factual logged stats from contextual AI hypotheses.
+  * 🔬 **Expandable Evidence Dropdowns**: `ChevronDown`/`ChevronUp` chevrons beside every suggestion revealing clinical evidence citations (*Sleep Foundation, ACSM, NIH PubMed*).
+  * ✍️ **Editable Retrospective Narrative**: Rich text box for customizing review summaries.
+  * ✅ **Interactive Plan Approval Panel**: Explicit **Approve & Apply Plan** button (syncs targets across Dashboard) vs. **Decline** modal.
+* **V6: Medical Safety Boundaries & Auditing Control Panel**:
+  * ⚠️ **Medical Refusal Filter**: Intercepts clinical queries (*prescriptions, diagnosis, drug dosages*) with HTTP 400 & mandatory disclaimer, logging `MedicalSafetyBypass` events.
+  * 🛡️ **Audit Logs Explorer**: Chronological table displaying all event types (`UserCorrection`, `AIUncertainty`, `PlanModification`, `RejectedRecommendation`, `MedicalSafetyBypass`, `WorkflowFailure`) with expandable JSON viewers.
+  * ⚡ **API Resilience Simulators**: Manual triggers for **504 Gateway Timeout** and **503 Service Unavailable** error handling tests.
 
-### ⚙️ Quick Installation
-Install all root, client, and server dependencies with the bootstrap script:
+---
 
-```bash
-npm run install:all
-```
+## 🚀 Quick Start & Installation
 
-*Or install manual prefixes:*
-```bash
-npm install
-npm install --prefix client
-npm install --prefix server
-```
+### Prerequisites
+* **Node.js**: v18.0.0 or higher
+* **npm**: v9.0.0 or higher
 
-### 🔑 Configuration (.env)
-1. Navigate to the `/server` directory.
-2. Copy the environment template:
+### Setup Steps
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/Jayasuryanarayana007/Longitudinal-Health-and-Nutrition-Review-Agent.git
+   cd "Longitudinal Health and Nutrition Review Agent"
+   ```
+
+2. **Install Dependencies**:
+   ```bash
+   npm run install-all
+   ```
+
+3. **Configure Environment Variables** (Optional):
+   Copy `.env.example` to `.env`:
    ```bash
    cp .env.example .env
    ```
-3. Set your custom port and optional Google Gemini API Key:
-   ```env
-   PORT=5000
-   NODE_ENV=development
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-   *Note: If no Gemini key is provided, the backend seamlessly switches to the **Heuristic AI Simulator** mode so the app never breaks.*
+   *(If `GEMINI_API_KEY` is not provided, the application seamlessly uses the smart local RAG fallback engine).*
 
-### 🏃 Running Locally
-Start both the React client dev server (port 5173) and the Express backend server (port 5000) simultaneously:
-
-```bash
-npm run dev
-```
-
-Open your browser and navigate to: **`http://localhost:5173`**
-
----
-
-## 🏗️ System Architecture
-
-```
-┌────────────────────────────────────────────────────────┐
-│               React Frontend Client (SPA)              │
-│ - Auth, Dashboard, Data Logger, AI reviews, Goals, Logs │
-│ - Client-side state-based routing & SVG charting       │
-└──────────────────────────┬─────────────────────────────┘
-                           │ API Calls (Proxied via Vite)
-                           ▼
-┌────────────────────────────────────────────────────────┐
-│               Node.js Express Backend API              │
-│ - Auth & Session controllers                           │
-│ - Daily Logs validation & averages calculator          │
-│ - AI Agent Services (RAG search, Heuristic Simulator)  │
-└──────────────────────────┬─────────────────────────────┘
-                           │ Loads Server-side .env
-                           ├─────────────────────────────┐
-                           ▼                             ▼
-              ┌──────────────────────────┐   ┌───────────────────────┐
-              │ Gemini API (Server Side) │   │ SQLite File Database  │
-              │ - Live LLM Workflows     │   │ - data/database.db    │
-              └──────────────────────────┘   └───────────────────────┘
-```
-
----
-
-## 🗃️ Database Schema
-
-The SQLite database (`server/data/database.sqlite`) maintains relational integrity using the following schemas:
-
-* **`users`**: Stored accounts credentials (SHA-256 password hash, DOB, biological sex).
-* **`daily_logs`**: Chronological records of numerical metrics (date, weight, sleepHours, mood, energy).
-* **`meals`**: Unstructured meal texts alongside AI estimates and user corrections.
-* **`activities`**: Logged workouts (duration, intensity, category).
-* **`goals`**: Versioned health goals (target sleep, daily calories, activity minutes).
-* **`plans`**: Versioned wellness plans proposed by the AI reviewer (Active, Pending, Rejected, Superseded).
-* **`audit_logs`**: System logs tracking user overrides, rejections, AI uncertainty, and failures.
-
----
-
-## 🧪 Running Automated Tests
-
-Run the test suite verifying deterministic averages calculations and bounds check validators:
-
-```bash
-npm run test --prefix server
-```
-
-*(Or navigate to `/server` and run `npm test` once dependencies are installed).*
-
----
-
-## 🌍 Production Build & Deployment
-
-In production, the React SPA is compiled and compiled inside the Express backend to run as a single process:
-
-1. Compile the React assets:
+4. **Launch Application in Development Mode**:
    ```bash
-   npm run build:client
+   npm run dev
    ```
-2. The compiled files are bundled into `client/dist/`.
-3. In production (`NODE_ENV=production`), the Express server automatically serves `client/dist/` as static assets.
-4. Deploy the entire directory to a public cloud platform (e.g., Render, Fly.io, Heroku) and set the `GEMINI_API_KEY` in your cloud console variables.
+   * **Frontend**: Open `http://localhost:5173/` in your browser.
+   * **Backend API**: Listening at `http://localhost:5000/`.
+
+---
+
+## 🧪 Running Automated Testing Suites
+
+Execute the master breakage runner to verify all 7 test modules (64 test cases):
+
+```bash
+node scratch/master_breakage_check.mjs
+```
+
+### Individual Test Suites
+* Core Auth & API Suite: `node scratch/api_tests.mjs`
+* V3 Validation Engine Suite: `node scratch/v3_extensive_tests.mjs`
+* V4 Text Extractor Suite: `node scratch/v4_tests.mjs`
+* V4 Edge-Case Breakage Suite: `node scratch/v4_breakage_check.mjs`
+* V5 RAG & Goals Suite: `node scratch/v5_tests.mjs`
+* V5 Edge-Case Suite: `node scratch/v5_breakage_check.mjs`
+* V6 Medical Safety & Failure Suite: `node scratch/v6_tests.mjs`
+* End-to-End Workflow Verification: `node scratch/e2e_full_workflow_test.mjs`
+
+---
+
+## 📂 Project Directory Structure
+
+```
+.
+├── client/                      # React Frontend App (Vite + Vanilla CSS)
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── AIReviewPanel.jsx     # AI Retrospective, RAG Review & Plan Approval Panel
+│   │   │   ├── ActivePlanCard.jsx    # Today's Active Approved Protocol & Guidelines Summary
+│   │   │   ├── AuditDashboard.jsx   # Audit Logs Explorer & API Failure Simulators Panel
+│   │   │   ├── Auth.jsx             # Signup / Login Screens
+│   │   │   ├── Dashboard.jsx        # Summaries, SVG Trend Charts & Gap Scanner Banner
+│   │   │   ├── DataLogger.jsx       # Dual Input Mode (Structured & Text Extractor)
+│   │   │   ├── GoalProfileCard.jsx  # Active Goals Profile & Multiple Target Activities
+│   │   │   └── TrendCharts.jsx      # Zero-Dependency SVG Line Charts & Bar Charts
+│   │   ├── App.jsx                  # Top Navigation Bar & Workspace Router
+│   │   ├── index.css                # Glassmorphic Dark-Theme Styling System
+│   │   └── main.jsx
+│   └── vite.config.js
+│
+├── server/                      # Express Backend API Engine
+│   ├── data/
+│   │   ├── db.js                    # SQLite Database Connection & Schema Migrations
+│   │   └── knowledgeBase.js         # 10 Curated Clinical Evidence Articles
+│   ├── routes/
+│   │   ├── audit.js                 # Audit logs explorer & failure simulation endpoints
+│   │   ├── auth.js                  # User registration & session management
+│   │   ├── logs.js                  # Daily metrics logger & text meal extraction endpoints
+│   │   └── plans.js                 # Goals CRUD, RAG review generator & plan approvals
+│   ├── services/
+│   │   ├── aiWellnessAgent.js       # RAG retrieval, Facts vs Interpretations, Gemini API
+│   │   ├── foodApiService.js        # Open Food Facts REST API service with timeout signals
+│   │   └── mealExtractionService.js # Text tokenizer & quantity multiplier parser
+│   ├── utils/
+│   │   ├── hash.js                  # SHA-256 password hashing
+│   │   ├── medicalSafetyFilter.js   # Clinical query scanner & disclaimer interceptor
+│   │   └── validationEngine.js      # Range checks, blocking rules & gap scanner
+│   └── index.js                     # Main Express server entry point
+│
+├── scratch/                     # Automated Test Suites (V1 through V6)
+├── .env.example                 # Environment variable configuration template
+├── package.json                 # Root dependencies & concurrent start scripts
+└── README.md                    # System documentation
+```
+
+---
+
+## 📜 License & Compliance
+
+* **License**: MIT License
+* **Medical Safety Notice**: This application is strictly an AI Wellness & Lifestyle Review Agent designed for personal tracking and informational self-review. It does not provide clinical diagnoses, prescriptions, or medical treatment advice.
