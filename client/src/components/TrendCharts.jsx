@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Minus, Activity, Moon, Flame, Scale } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Activity } from 'lucide-react';
 
 /**
  * Single SVG Line Chart with gradient fill area and interactive hover tooltips.
@@ -7,14 +7,24 @@ import { TrendingUp, TrendingDown, Minus, Activity, Moon, Flame, Scale } from 'l
 function SvgLineChart({ data, dataKey, label, unit, color = '#10b981', strokeWidth = 2.5 }) {
   const [activePoint, setActivePoint] = useState(null);
 
-  if (!data || data.length === 0) {
-    return <div className="chart-empty-state">No trend data available for selected period.</div>;
-  }
+  if (!data || data.length === 0) return null;
 
-  // Filter valid data points
-  const validPoints = data.filter(d => d[dataKey] !== null && d[dataKey] !== undefined);
+  // Filter valid non-zero data points
+  const validPoints = data.filter(d => d[dataKey] !== null && d[dataKey] !== undefined && Number(d[dataKey]) > 0);
   if (validPoints.length === 0) {
-    return <div className="chart-empty-state">No recorded {label.toLowerCase()} entries in this timeframe.</div>;
+    return (
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.6)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '12px',
+        padding: '1.5rem',
+        textAlign: 'center',
+        color: '#64748b',
+        fontSize: '0.85rem'
+      }}>
+        No logged entries for {label.toLowerCase()} yet.
+      </div>
+    );
   }
 
   const values = validPoints.map(d => Number(d[dataKey]));
@@ -30,7 +40,6 @@ function SvgLineChart({ data, dataKey, label, unit, color = '#10b981', strokeWid
   const chartW = width - paddingX * 2;
   const chartH = height - paddingTop - paddingBottom;
 
-  // Calculate SVG points coordinates
   const points = validPoints.map((d, index) => {
     const x = paddingX + (index / Math.max(validPoints.length - 1, 1)) * chartW;
     const normY = (Number(d[dataKey]) - minVal) / valRange;
@@ -38,17 +47,13 @@ function SvgLineChart({ data, dataKey, label, unit, color = '#10b981', strokeWid
     return { x, y, val: Number(d[dataKey]), date: d.date };
   });
 
-  // Construct SVG Path String
   const pathD = points.reduce((acc, p, i) => {
     return i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`;
   }, '');
 
-  // Area Fill Path String (closing down to baseline)
   const areaD = `${pathD} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`;
-
   const gradientId = `grad_${dataKey}_${Math.random().toString(36).substring(2, 7)}`;
 
-  // Calculate delta indicator
   const startVal = points[0].val;
   const endVal = points[points.length - 1].val;
   const delta = (endVal - startVal).toFixed(1);
@@ -101,18 +106,13 @@ function SvgLineChart({ data, dataKey, label, unit, color = '#10b981', strokeWid
             </linearGradient>
           </defs>
 
-          {/* Grid lines */}
           <line x1={paddingX} y1={paddingTop} x2={width - paddingX} y2={paddingTop} stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
           <line x1={paddingX} y1={paddingTop + chartH / 2} x2={width - paddingX} y2={paddingTop + chartH / 2} stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
           <line x1={paddingX} y1={height - paddingBottom} x2={width - paddingX} y2={height - paddingBottom} stroke="rgba(255,255,255,0.1)" />
 
-          {/* Gradient Area Fill */}
           <path d={areaD} fill={`url(#${gradientId})`} />
-
-          {/* Line Path */}
           <path d={pathD} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
 
-          {/* Data Points */}
           {points.map((p, idx) => (
             <g key={idx}>
               <circle
@@ -127,7 +127,6 @@ function SvgLineChart({ data, dataKey, label, unit, color = '#10b981', strokeWid
                 onMouseLeave={() => setActivePoint(null)}
               />
 
-              {/* Date Labels (Show first, middle, last) */}
               {(idx === 0 || idx === Math.floor(points.length / 2) || idx === points.length - 1) && (
                 <text
                   x={p.x}
@@ -144,7 +143,6 @@ function SvgLineChart({ data, dataKey, label, unit, color = '#10b981', strokeWid
           ))}
         </svg>
 
-        {/* Hover Tooltip Overlay */}
         {activePoint && (
           <div style={{
             position: 'absolute',
@@ -177,11 +175,25 @@ function SvgLineChart({ data, dataKey, label, unit, color = '#10b981', strokeWid
 function SvgBarChart({ data, dataKey, label, unit, color = '#06b6d4' }) {
   const [hoveredBar, setHoveredBar] = useState(null);
 
-  if (!data || data.length === 0) {
-    return <div className="chart-empty-state">No distribution data available.</div>;
+  if (!data || data.length === 0) return null;
+
+  const validData = data.filter(d => d[dataKey] !== null && d[dataKey] !== undefined && Number(d[dataKey]) > 0);
+  if (validData.length === 0) {
+    return (
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.6)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '12px',
+        padding: '1.5rem',
+        textAlign: 'center',
+        color: '#64748b',
+        fontSize: '0.85rem'
+      }}>
+        No logged entries for {label.toLowerCase()} yet.
+      </div>
+    );
   }
 
-  const validData = data.filter(d => d[dataKey] !== null && d[dataKey] !== undefined);
   const values = validData.map(d => Number(d[dataKey] || 0));
   const maxVal = Math.max(...values, 1);
 
@@ -223,7 +235,6 @@ function SvgBarChart({ data, dataKey, label, unit, color = '#06b6d4' }) {
       {/* SVG Canvas */}
       <div style={{ position: 'relative', width: '100%' }}>
         <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-          {/* Grid Baseline */}
           <line x1={paddingX} y1={height - paddingBottom} x2={width - paddingX} y2={height - paddingBottom} stroke="rgba(255,255,255,0.1)" />
 
           {validData.map((d, idx) => {
@@ -231,7 +242,6 @@ function SvgBarChart({ data, dataKey, label, unit, color = '#06b6d4' }) {
             const barH = (val / maxVal) * chartH;
             const x = paddingX + idx * availableW + (availableW - barWidth) / 2;
             const y = height - paddingBottom - barH;
-
             const isHovered = hoveredBar && hoveredBar.date === d.date;
 
             return (
@@ -249,7 +259,6 @@ function SvgBarChart({ data, dataKey, label, unit, color = '#06b6d4' }) {
                   onMouseLeave={() => setHoveredBar(null)}
                 />
 
-                {/* X-axis date labels for key steps */}
                 {(idx === 0 || idx === Math.floor(validData.length / 2) || idx === validData.length - 1) && (
                   <text
                     x={x + barWidth / 2}
@@ -267,7 +276,6 @@ function SvgBarChart({ data, dataKey, label, unit, color = '#06b6d4' }) {
           })}
         </svg>
 
-        {/* Hover Tooltip Overlay */}
         {hoveredBar && (
           <div style={{
             position: 'absolute',
@@ -298,17 +306,36 @@ function SvgBarChart({ data, dataKey, label, unit, color = '#06b6d4' }) {
  * Main Composite Trend Charts View Component
  */
 export default function TrendCharts({ dailyHistory }) {
-  if (!dailyHistory || dailyHistory.length === 0) {
+  // Check if any actual log metrics exist across the dailyHistory array
+  const hasRecordedLogs = Array.isArray(dailyHistory) && dailyHistory.length > 0 && dailyHistory.some(d =>
+    (d.weight !== null && d.weight !== undefined && d.weight > 0) ||
+    (d.sleepHours !== null && d.sleepHours !== undefined && d.sleepHours > 0) ||
+    (d.calories !== null && d.calories !== undefined && d.calories > 0) ||
+    (d.activityMinutes !== null && d.activityMinutes !== undefined && d.activityMinutes > 0)
+  );
+
+  if (!hasRecordedLogs) {
     return (
       <div style={{
-        background: 'rgba(15, 23, 42, 0.4)',
-        border: '1px border-dashed rgba(255,255,255,0.1)',
-        padding: '2rem',
+        background: 'rgba(15, 23, 42, 0.5)',
+        border: '1px dashed rgba(255, 255, 255, 0.15)',
+        padding: '2.5rem 1.5rem',
         borderRadius: '12px',
         textAlign: 'center',
-        color: '#64748b'
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '0.75rem'
       }}>
-        No historical log data available for visual trends yet. Use the Data Logger or Seed utility to populate data.
+        <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '0.75rem', borderRadius: '50%', color: '#10b981', display: 'flex' }}>
+          <Activity size={24} />
+        </div>
+        <h4 style={{ margin: 0, color: '#f8fafc', fontSize: '1.05rem', fontWeight: '700' }}>
+          No Trend Data Recorded Yet
+        </h4>
+        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.85rem', maxWidth: '480px', lineHeight: '1.5' }}>
+          Visual SVG charts for weight, sleep duration, calorie intake, and workout duration will automatically render here as soon as you record daily entries in the Data Logger.
+        </p>
       </div>
     );
   }
