@@ -36,7 +36,7 @@ export default function ActivePlanCard({ currentUser, refreshTrigger }) {
   };
 
   if (loading || !activePlan || !activePlan.suggestions || activePlan.suggestions.length === 0) {
-    return null; // Don't block UI if no approved plan exists yet
+    return null;
   }
 
   const formattedDate = new Date(activePlan.createdAt).toLocaleDateString(undefined, {
@@ -46,13 +46,7 @@ export default function ActivePlanCard({ currentUser, refreshTrigger }) {
   });
 
   return (
-    <div className="auth-card" style={{
-      maxWidth: 'none',
-      padding: '1.5rem',
-      background: 'rgba(16, 185, 129, 0.05)',
-      border: '1px solid rgba(16, 185, 129, 0.25)',
-      borderRadius: '12px'
-    }}>
+    <div className="auth-card full-width" style={{ background: 'rgba(16, 185, 129, 0.05)', borderColor: 'rgba(16, 185, 129, 0.25)' }}>
       
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem', borderBottom: '1px solid rgba(16, 185, 129, 0.15)', paddingBottom: '0.75rem' }}>
@@ -70,7 +64,7 @@ export default function ActivePlanCard({ currentUser, refreshTrigger }) {
           </div>
         </div>
 
-        <span style={{ fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', padding: '0.3rem 0.75rem', borderRadius: '20px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+        <span className="badge badge-primary">
           <CheckCircle2 size={14} /> Approved Protocol
         </span>
       </div>
@@ -123,19 +117,8 @@ export default function ActivePlanCard({ currentUser, refreshTrigger }) {
 
               {/* Expandable Evidence */}
               {isExpanded && sug.evidence && (
-                <div style={{
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  border: '1px solid rgba(16, 185, 129, 0.2)',
-                  borderRadius: '6px',
-                  padding: '0.6rem 0.75rem',
-                  fontSize: '0.78rem',
-                  color: '#cbd5e1',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.3rem',
-                  marginTop: '0.25rem'
-                }}>
-                  <div style={{ fontWeight: '600', color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <div className="evidence-box">
+                  <div className="evidence-title">
                     <BookOpen size={12} /> Clinical Evidence (Ref: #{sug.kbArticleId || 'RAG-Ref'})
                   </div>
                   <div style={{ fontStyle: 'italic', lineHeight: '1.3' }}>

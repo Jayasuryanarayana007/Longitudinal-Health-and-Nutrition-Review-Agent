@@ -8,7 +8,7 @@ import { LogOut, Activity, LayoutDashboard, PenTool, Sparkles, ShieldCheck } fro
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' or 'logger'
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   // Retrieve user session on mount
   useEffect(() => {
@@ -33,46 +33,25 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#090d16', color: '#f1f5f9' }}>
+    <div className="app-shell">
       
-      {/* Premium Top Navigation Bar */}
-      <header style={{
-        background: '#151d30',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '1rem 2rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}>
+      {/* Top Navigation Bar */}
+      <header className="app-header">
+        <div className="app-header-container">
+          
           {/* Logo Brand */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              background: 'rgba(5, 150, 105, 0.1)',
-              padding: '0.5rem',
-              borderRadius: '8px',
-              border: '1px solid rgba(5, 150, 105, 0.2)',
-              color: '#10b981',
-              display: 'flex'
-            }}>
+          <div className="app-brand">
+            <div className="app-brand-icon">
               <Activity size={20} />
             </div>
-            <strong style={{ fontSize: '1.2rem', color: '#f8fafc' }}>Wellness Review</strong>
+            <strong className="app-brand-title">Wellness Review</strong>
           </div>
 
           {/* User metadata & Logout */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-            <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-              Logged in as <strong style={{ color: '#f8fafc' }}>{currentUser.name || currentUser.username}</strong>
-              <span style={{ margin: '0 0.5rem', color: 'rgba(255,255,255,0.1)' }}>|</span>
+          <div className="app-user-area">
+            <div className="app-user-meta">
+              Logged in as <strong className="app-user-name">{currentUser.name || currentUser.username}</strong>
+              <span className="app-divider">|</span>
               {currentUser.sex} ({(() => {
                 const today = new Date();
                 const birth = new Date(currentUser.dob);
@@ -82,25 +61,8 @@ export default function App() {
                 return age;
               })()} yrs)
             </div>
-            <button
-              onClick={handleLogout}
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: '6px',
-                padding: '0.5rem 1rem',
-                color: '#f1f5f9',
-                fontSize: '0.85rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                transition: 'background 0.15s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
+
+            <button onClick={handleLogout} className="app-btn-signout">
               <LogOut size={14} /> Sign Out
             </button>
           </div>
@@ -108,86 +70,34 @@ export default function App() {
       </header>
 
       {/* Main Workspace Frame */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+      <div className="app-main-container">
         
         {/* Navigation Tabs Bar */}
-        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '1rem', marginBottom: '2rem' }}>
+        <div className="app-nav-tabs">
           <button
             onClick={() => setActiveTab('dashboard')}
-            style={{
-              background: activeTab === 'dashboard' ? '#1e293b' : 'transparent',
-              border: activeTab === 'dashboard' ? '1px solid rgba(255,255,255,0.08)' : 'none',
-              borderRadius: '8px',
-              padding: '0.75rem 1.5rem',
-              color: activeTab === 'dashboard' ? '#ffffff' : '#94a3b8',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontFamily: 'inherit',
-              transition: 'all 0.15s ease'
-            }}
+            className={`app-nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
           >
             <LayoutDashboard size={16} /> Dashboard
           </button>
           
           <button
             onClick={() => setActiveTab('logger')}
-            style={{
-              background: activeTab === 'logger' ? '#1e293b' : 'transparent',
-              border: activeTab === 'logger' ? '1px solid rgba(255,255,255,0.08)' : 'none',
-              borderRadius: '8px',
-              padding: '0.75rem 1.5rem',
-              color: activeTab === 'logger' ? '#ffffff' : '#94a3b8',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontFamily: 'inherit',
-              transition: 'all 0.15s ease'
-            }}
+            className={`app-nav-tab ${activeTab === 'logger' ? 'active' : ''}`}
           >
             <PenTool size={16} /> Log Daily Metrics
           </button>
 
           <button
             onClick={() => setActiveTab('review')}
-            style={{
-              background: activeTab === 'review' ? '#1e293b' : 'transparent',
-              border: activeTab === 'review' ? '1px solid rgba(255,255,255,0.08)' : 'none',
-              borderRadius: '8px',
-              padding: '0.75rem 1.5rem',
-              color: activeTab === 'review' ? '#ffffff' : '#94a3b8',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontFamily: 'inherit',
-              transition: 'all 0.15s ease'
-            }}
+            className={`app-nav-tab ${activeTab === 'review' ? 'active' : ''}`}
           >
             <Sparkles size={16} style={{ color: '#10b981' }} /> AI Retrospective & Plans
           </button>
 
           <button
             onClick={() => setActiveTab('audit')}
-            style={{
-              background: activeTab === 'audit' ? '#1e293b' : 'transparent',
-              border: activeTab === 'audit' ? '1px solid rgba(255,255,255,0.08)' : 'none',
-              borderRadius: '8px',
-              padding: '0.75rem 1.5rem',
-              color: activeTab === 'audit' ? '#ffffff' : '#94a3b8',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontFamily: 'inherit',
-              transition: 'all 0.15s ease'
-            }}
+            className={`app-nav-tab ${activeTab === 'audit' ? 'active' : ''}`}
           >
             <ShieldCheck size={16} style={{ color: '#fbbf24' }} /> Audit & Safety Panel
           </button>
