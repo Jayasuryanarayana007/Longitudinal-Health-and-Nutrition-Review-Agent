@@ -1,15 +1,15 @@
-import { knowledgeBaseArticles } from '../data/knowledgeBase.js';
+import { knowledgeBaseArticles, searchKnowledgeBase } from '../data/knowledgeBase.js';
 import { callGroqLLM } from './groqService.js';
 
 /**
- * AI Wellness Agent Service — TRUE RAG Pipeline
+ * AI Wellness Agent Service — TRUE RAG Pipeline with Industry-Standard KB Metadata
  * 
  * Architecture:
- * 1. RETRIEVAL  — Tag-match user's underperforming metrics against Knowledge Base articles
- * 2. AUGMENT    — Construct a structured prompt injecting retrieved KB evidence + user metrics
+ * 1. RETRIEVAL  — Hybrid RAG Search (Tags + Category + Evidence Grade Weighting)
+ * 2. AUGMENT    — Construct structured prompt with Evidence Tiers (Grade A/B), DOIs, MeSH Ontologies
  * 3. GENERATE   — Send prompt to Groq LLM (llama-3.3-70b-versatile) for grounded generation
- * 4. PARSE      — Extract structured JSON (facts, interpretations, recommendations) from LLM output
- * 5. FALLBACK   — If LLM is unavailable, fall back to deterministic template engine
+ * 4. PARSE      — Extract structured JSON (facts, interpretations, recommendations with clinical metadata)
+ * 5. FALLBACK   — Seamless deterministic engine fallback
  */
 
 export async function generateRetrospectiveAndPlan(userStr, baseDateStr, weeklySummary, activeGoal) {
@@ -19,22 +19,20 @@ export async function generateRetrospectiveAndPlan(userStr, baseDateStr, weeklyS
   const targetWeight = activeGoal ? activeGoal.targetWeight : 75.0;
 
   // ═══════════════════════════════════════════════════════════════
-  // STEP 1: RETRIEVAL — Match low-performing metrics against KB
+  // STEP 1: RETRIEVAL — RAG Search matching low-performing tags
   // ═══════════════════════════════════════════════════════════════
-  const tagsToQuery = new Set();
-  if (weeklySummary.sleepAvg < targetSleep) tagsToQuery.add('sleep');
-  if (weeklySummary.energyAvg < 6) tagsToQuery.add('energy');
-  if (weeklySummary.caloriesAvg < (targetCals - 300) || weeklySummary.caloriesAvg > (targetCals + 500)) tagsToQuery.add('nutrition');
-  if (weeklySummary.totalActivityMinutes < (targetActivity * 5)) tagsToQuery.add('activity');
-  if (weeklySummary.weightDelta > 1.0 || weeklySummary.weightDelta < -2.0) tagsToQuery.add('weight');
-  if (weeklySummary.moodAvg < 5) tagsToQuery.add('mood');
+  const tagsToQuery = [];
+  if (weeklySummary.sleepAvg < targetSleep) tagsToQuery.push('sleep');
+  if (weeklySummary.energyAvg < 6) tagsToQuery.push('energy');
+  if (weeklySummary.caloriesAvg < (targetCals - 300) || weeklySummary.caloriesAvg > (targetCals + 500)) tagsToQuery.push('nutrition');
+  if (weeklySummary.totalActivityMinutes < (targetActivity * 5)) tagsToQuery.push('activity');
+  if (weeklySummary.weightDelta > 1.0 || weeklySummary.weightDelta < -2.0) tagsToQuery.push('weight');
+  if (weeklySummary.moodAvg < 5) tagsToQuery.push('mood');
 
-  // Default to general sleep/recovery if all metrics are fine
-  if (tagsToQuery.size === 0) tagsToQuery.add('sleep');
+  if (tagsToQuery.length === 0) tagsToQuery.push('sleep');
 
-  const retrievedArticles = knowledgeBaseArticles.filter(art =>
-    art.tags.some(tag => tagsToQuery.has(tag))
-  );
+  // Hybrid Search with RRF ranking
+  const retrievedArticles = searchKnowledgeBase(tagsToQuery, null, 5);
 
   // Parse target activities list
   let targetActsList = [];
@@ -49,10 +47,10 @@ export async function generateRetrospectiveAndPlan(userStr, baseDateStr, weeklyS
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // STEP 2: AUGMENT — Build structured prompt with retrieved context
+  // STEP 2: AUGMENT — Build structured prompt with Clinical Evidence Tiers
   // ═══════════════════════════════════════════════════════════════
   const kbContext = retrievedArticles.map(art =>
-    `[Article ID: ${art.id}] "${art.title}" (Category: ${art.category})\n  Evidence: ${art.evidence}\n  Guidelines: ${art.guidelines.join('; ')}`
+    `[Article ID: ${art.id}] "${art.title}" (Category: ${art.category})\n  Grade: ${art.evidenceGrade}\n  DOI: ${art.doi}\n  MeSH Terms: ${art.meshTerms.join(', ')}\n  Evidence: ${art.evidence}\n  Guidelines: ${art.guidelines.join('; ')}`
   ).join('\n\n');
 
   const activitiesDescription = targetActsList.length > 0
@@ -79,7 +77,10 @@ Respond ONLY with valid JSON in this exact structure:
       "proposal": "<specific actionable recommendation>",
       "targetValue": <numeric target value>,
       "evidence": "<exact evidence text from the cited KB article>",
-      "kbArticleId": "<article ID from knowledge base>"
+      "kbArticleId": "<article ID from knowledge base>",
+      "evidenceGrade": "<Grade A (Meta-Analysis) | Grade B (Clinical Trial)>",
+      "doi": "<DOI citation string>",
+      "meshTerms": ["<term1>", "<term2>"]
     }
   ]
 }`;
@@ -96,11 +97,11 @@ Respond ONLY with valid JSON in this exact structure:
 - Target Weight: ${targetWeight} kg
 - Target Activities: ${activitiesDescription}
 
-## Retrieved Knowledge Base Articles (Use ONLY these for evidence citations)
+## Clinical Knowledge Base Evidence (Use ONLY these for citations)
 
 ${kbContext}
 
-Based on the above data and retrieved evidence articles, generate your analysis. Include at least one recommendation per target activity the user has configured. Cite article IDs from the knowledge base provided.`;
+Based on the above data and retrieved clinical evidence, generate your review. Include recommendations for each target activity the user has configured. Populate evidenceGrade, doi, and meshTerms from the cited KB articles.`;
 
   // ═══════════════════════════════════════════════════════════════
   // STEP 3: GENERATE — Call Groq LLM (llama-3.3-70b-versatile)
@@ -108,12 +109,8 @@ Based on the above data and retrieved evidence articles, generate your analysis.
   const llmResult = await callGroqLLM(systemPrompt, userPrompt, true);
 
   if (llmResult.success && llmResult.parsed) {
-    // ═══════════════════════════════════════════════════════════════
-    // STEP 4: PARSE — Extract structured output from LLM response
-    // ═══════════════════════════════════════════════════════════════
     const llmOutput = llmResult.parsed;
 
-    // Validate and sanitize LLM output structure
     const facts = Array.isArray(llmOutput.facts) && llmOutput.facts.length > 0
       ? llmOutput.facts
       : buildDeterministicFacts(weeklySummary, targetSleep, targetCals, targetActivity);
@@ -126,21 +123,25 @@ Based on the above data and retrieved evidence articles, generate your analysis.
       ? llmOutput.retrospectiveText
       : buildDeterministicRetrospective(baseDateStr, weeklySummary, interpretations);
 
-    // Validate recommendations have required fields and valid KB references
     let proposedRecommendations = [];
     if (Array.isArray(llmOutput.proposedRecommendations)) {
       proposedRecommendations = llmOutput.proposedRecommendations
         .filter(r => r.category && r.proposal && r.evidence && r.kbArticleId)
-        .map(r => ({
-          category: String(r.category),
-          proposal: String(r.proposal),
-          targetValue: parseFloat(r.targetValue) || 0,
-          evidence: String(r.evidence),
-          kbArticleId: String(r.kbArticleId)
-        }));
+        .map(r => {
+          const matchedKb = knowledgeBaseArticles.find(art => art.id === r.kbArticleId);
+          return {
+            category: String(r.category),
+            proposal: String(r.proposal),
+            targetValue: parseFloat(r.targetValue) || 0,
+            evidence: String(r.evidence),
+            kbArticleId: String(r.kbArticleId),
+            evidenceGrade: r.evidenceGrade || (matchedKb ? matchedKb.evidenceGrade : 'Grade A (Clinical Guidelines)'),
+            doi: r.doi || (matchedKb ? matchedKb.doi : ''),
+            meshTerms: Array.isArray(r.meshTerms) ? r.meshTerms : (matchedKb ? matchedKb.meshTerms : [])
+          };
+        });
     }
 
-    // If LLM didn't generate enough recommendations, supplement with deterministic ones
     if (proposedRecommendations.length === 0) {
       proposedRecommendations = buildDeterministicRecommendations(weeklySummary, targetSleep, targetCals, targetActivity, retrievedArticles, targetActsList);
     }
@@ -155,11 +156,7 @@ Based on the above data and retrieved evidence articles, generate your analysis.
     };
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // STEP 5: FALLBACK — Deterministic template engine (no LLM)
-  // ═══════════════════════════════════════════════════════════════
-  console.warn(`[AI Agent] LLM unavailable (${llmResult.error}), using deterministic fallback.`);
-
+  // Fallback engine
   const facts = buildDeterministicFacts(weeklySummary, targetSleep, targetCals, targetActivity);
   const interpretations = buildDeterministicInterpretations(weeklySummary, targetSleep);
   const retrospectiveText = buildDeterministicRetrospective(baseDateStr, weeklySummary, interpretations);
@@ -174,10 +171,6 @@ Based on the above data and retrieved evidence articles, generate your analysis.
     llmPowered: false
   };
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// DETERMINISTIC FALLBACK BUILDERS (same as original V5 logic)
-// ═══════════════════════════════════════════════════════════════════
 
 function buildDeterministicFacts(ws, targetSleep, targetCals, targetActivity) {
   return [
@@ -220,7 +213,10 @@ function buildDeterministicRecommendations(ws, targetSleep, targetCals, targetAc
       proposal: `Increase target sleep to ${targetSleep} hrs/night and set a 10:30 PM wind-down reminder.`,
       targetValue: targetSleep,
       evidence: sleepKb.evidence,
-      kbArticleId: sleepKb.id
+      kbArticleId: sleepKb.id,
+      evidenceGrade: sleepKb.evidenceGrade,
+      doi: sleepKb.doi,
+      meshTerms: sleepKb.meshTerms
     });
   }
 
@@ -231,7 +227,10 @@ function buildDeterministicRecommendations(ws, targetSleep, targetCals, targetAc
       proposal: `Adjust daily target calories to ${targetCals} kcal to properly fuel active workouts and recovery.`,
       targetValue: targetCals,
       evidence: nutKb.evidence,
-      kbArticleId: nutKb.id
+      kbArticleId: nutKb.id,
+      evidenceGrade: nutKb.evidenceGrade,
+      doi: nutKb.doi,
+      meshTerms: nutKb.meshTerms
     });
   }
 
@@ -247,7 +246,10 @@ function buildDeterministicRecommendations(ws, targetSleep, targetCals, targetAc
         proposal: `Maintain target of ${duration} mins/day for ${actType}${qtyStr} to support cardiovascular conditioning and Zone 2 active recovery.`,
         targetValue: duration,
         evidence: actKb.evidence,
-        kbArticleId: actKb.id
+        kbArticleId: actKb.id,
+        evidenceGrade: actKb.evidenceGrade,
+        doi: actKb.doi,
+        meshTerms: actKb.meshTerms
       });
     });
   } else {
@@ -256,7 +258,10 @@ function buildDeterministicRecommendations(ws, targetSleep, targetCals, targetAc
       proposal: `Maintain a baseline target of ${targetActivity} minutes of physical activity per day.`,
       targetValue: targetActivity,
       evidence: actKb.evidence,
-      kbArticleId: actKb.id
+      kbArticleId: actKb.id,
+      evidenceGrade: actKb.evidenceGrade,
+      doi: actKb.doi,
+      meshTerms: actKb.meshTerms
     });
   }
 

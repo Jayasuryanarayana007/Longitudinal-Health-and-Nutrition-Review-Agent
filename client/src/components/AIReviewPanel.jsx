@@ -358,14 +358,46 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
                           color: '#e2e8f0',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '0.4rem',
+                          gap: '0.5rem',
                           marginTop: '0.25rem'
                         }}>
-                          <div style={{ fontWeight: '600', color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <BookOpen size={14} /> Knowledge Base Evidence (Ref: #{rec.kbArticleId || 'RAG-Ref'})
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div style={{ fontWeight: '600', color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <BookOpen size={14} /> Clinical Reference: #{rec.kbArticleId || 'RAG-Ref'}
+                            </div>
+                            {rec.evidenceGrade && (
+                              <span style={{
+                                background: 'rgba(6, 182, 212, 0.15)',
+                                color: '#22d3ee',
+                                border: '1px solid rgba(6, 182, 212, 0.3)',
+                                fontSize: '0.75rem',
+                                padding: '0.15rem 0.5rem',
+                                borderRadius: '12px',
+                                fontWeight: '600'
+                              }}>
+                                🧪 {rec.evidenceGrade}
+                              </span>
+                            )}
                           </div>
+
                           <div style={{ fontStyle: 'italic', lineHeight: '1.4', color: '#cbd5e1' }}>
                             "{rec.evidence}"
+                          </div>
+
+                          {/* Metadata: DOI & MeSH Terms */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.4rem', marginTop: '0.2rem', fontSize: '0.75rem', color: '#94a3b8', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            {rec.doi && (
+                              <span><strong>DOI:</strong> <a href={`https://doi.org/${rec.doi}`} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>{rec.doi}</a></span>
+                            )}
+                            {Array.isArray(rec.meshTerms) && rec.meshTerms.length > 0 && (
+                              <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                                {rec.meshTerms.map((term, tIdx) => (
+                                  <span key={tIdx} style={{ background: 'rgba(255,255,255,0.06)', padding: '0.1rem 0.4rem', borderRadius: '4px', color: '#cbd5e1' }}>
+                                    #{term}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
