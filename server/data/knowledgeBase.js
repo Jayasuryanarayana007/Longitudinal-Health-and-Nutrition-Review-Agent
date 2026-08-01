@@ -4,7 +4,9 @@
  * Sourced from clinical literature (National Sleep Foundation, ACSM, NIH PubMed, WHO, AJCN)
  */
 
-export const knowledgeBaseArticles = [
+import { hybridVectorSearch } from '../services/vectorSearchService.js';
+
+export const knowledgeBaseArticles = Object.freeze([
   {
     id: 'kb-sleep-hygiene',
     title: 'Circadian Rhythm Alignment & Sleep Architecture Protocols',
@@ -249,7 +251,7 @@ export const knowledgeBaseArticles = [
       {
         chunkId: 'kb-stress-cortisol-management-c1',
         header: 'Vagal Nerve Activation via Expiratory Lengthening',
-        text: 'Sustained exhalation increases intra-thoracic pressure, slowing sinus node pacemaking and shifting autonomic autonomic balance from sympathetic fight-or-flight to parasympathetic calm.'
+        text: 'Sustained exhalation increases intra-thoracic pressure, slowing sinus node pacemaking and shifting autonomic balance from sympathetic fight-or-flight to parasympathetic calm.'
       }
     ]
   },
@@ -280,39 +282,12 @@ export const knowledgeBaseArticles = [
       }
     ]
   }
-];
+]);
 
 /**
- * Hybrid RAG Retrieval Helper: Combines Dense Cosine Vector Search & Sparse BM25 Keyword Search
+ * True Hybrid RAG Retrieval Helper: Combines Dense Cosine Vector Search & Sparse BM25 Keyword Search
  * using Reciprocal Rank Fusion (RRF).
  */
 export function searchKnowledgeBase(queryTags = [], category = null, topK = 4) {
-  const normalizedTags = queryTags.map(t => t.toLowerCase());
-
-  // Rank articles by tag overlap + category match + evidence grade weight
-  const scored = knowledgeBaseArticles.map(article => {
-    let score = 0;
-
-    // Category match bonus
-    if (category && article.category.toLowerCase() === category.toLowerCase()) {
-      score += 3.0;
-    }
-
-    // Tag matching score
-    const matchingTags = article.tags.filter(t => normalizedTags.includes(t.toLowerCase()));
-    score += matchingTags.length * 2.0;
-
-    // Grade A evidence bonus (prioritize meta-analyses)
-    if (article.evidenceGrade.includes('Grade A')) {
-      score += 1.0;
-    }
-
-    return { article, score };
-  });
-
-  // Sort descending by score
-  scored.sort((a, b) => b.score - a.score);
-
-  // Return topK articles
-  return scored.slice(0, topK).map(s => s.article);
+  return hybridVectorSearch(queryTags, category, topK);
 }
