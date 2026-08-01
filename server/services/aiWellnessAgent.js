@@ -2,7 +2,7 @@ import { knowledgeBaseArticles, searchKnowledgeBase } from '../data/knowledgeBas
 import { callGroqLLM } from './groqService.js';
 
 /**
- * AI Wellness Agent Service — TRUE RAG Pipeline with Edge Case Handling
+ * AI Wellness Agent Service — TRUE RAG Pipeline with Edge Case Handling & Targeted Follow-Up Questions
  * 
  * Architecture & Edge Cases:
  * 1. NO LOGS EDGE CASE   — If weeklySummary.logCount === 0, returns explicit "Insufficient Data" response without false deficit assumptions.
@@ -10,7 +10,8 @@ import { callGroqLLM } from './groqService.js';
  * 3. RETRIEVAL           — Hybrid RAG Search (Tags + Category + Evidence Grade Weighting)
  * 4. AUGMENT             — Construct structured prompt with Evidence Tiers (Grade A/B), DOIs, MeSH Ontologies
  * 5. GENERATE            — Send prompt to Groq LLM (llama-3.3-70b-versatile) for grounded generation
- * 6. PARSE & FALLBACK    — Extract structured JSON with seamless deterministic fallback
+ * 6. TARGETED FOLLOW-UPS — Generates context-aware follow-up questions tailored to log anomalies
+ * 7. PARSE & FALLBACK    — Extract structured JSON with seamless deterministic fallback
  */
 
 export async function generateRetrospectiveAndPlan(userStr, baseDateStr, weeklySummary, activeGoal) {
@@ -38,6 +39,11 @@ export async function generateRetrospectiveAndPlan(userStr, baseDateStr, weeklyS
     ];
 
     const retrospectiveText = `Weekly Wellness Retrospective (${baseDateStr}): No health logs were recorded during this period. Regular daily logging is required to compute 7-day averages, analyze recovery trends, and evaluate active wellness goals.`;
+
+    const followUpQuestions = [
+      `What primary wellness goals are you looking to track (e.g., sleep optimization, weight management, workout consistency)?`,
+      `Would you like assistance setting up your daily logging routine for meals and physical activity?`
+    ];
 
     const proposedRecommendations = [
       {
@@ -70,6 +76,7 @@ export async function generateRetrospectiveAndPlan(userStr, baseDateStr, weeklyS
       facts,
       interpretations,
       retrospectiveText,
+      followUpQuestions,
       proposedRecommendations,
       retrievedArticles: [sleepKb],
       llmPowered: false
@@ -120,13 +127,13 @@ export async function generateRetrospectiveAndPlan(userStr, baseDateStr, weeklyS
     ? targetActsList.map(a => `${a.type}: ${a.durationMinutes} mins/day${a.quantity ? ` (${a.quantity} ${a.unit || ''})` : ''}`).join(', ')
     : (hasGoal ? `General workout: ${targetActivity} mins/day` : 'No target activities configured yet');
 
-  const systemPrompt = `You are an AI Wellness & Lifestyle Review Agent. Your role is to analyze a user's health tracking data and provide evidence-based wellness guidance.
+  const systemPrompt = `You are an AI Wellness & Lifestyle Review Agent. Your role is to analyze a user's health tracking data, provide evidence-based wellness guidance, and ask targeted follow-up questions to understand trend drivers.
 
 CRITICAL RULES:
 1. You are NOT a doctor. Never diagnose diseases, prescribe medications, or recommend clinical treatments.
 2. Every recommendation MUST cite a specific Knowledge Base article ID (e.g., kb-sleep-hygiene) from the provided context.
 3. Clearly separate FACTS (objective logged data) from INTERPRETATIONS (your analytical hypotheses).
-4. If no custom active goals profile is set, explicitly note that targets are unconfigured.
+4. Include 2-3 targeted follow-up questions inquiring about potential causes for observed trends (e.g., screen time, meal timing, stress).
 5. Keep recommendations actionable, specific, and limited to lifestyle/wellness adjustments.
 
 Respond ONLY with valid JSON in this exact structure:
@@ -134,6 +141,7 @@ Respond ONLY with valid JSON in this exact structure:
   "facts": ["<fact 1>", "<fact 2>", ...],
   "interpretations": ["<interpretation 1>", "<interpretation 2>", ...],
   "retrospectiveText": "<A 3-4 sentence weekly wellness retrospective narrative>",
+  "followUpQuestions": ["<targeted question 1>", "<targeted question 2>"],
   "proposedRecommendations": [
     {
       "category": "<Sleep|Nutrition|Activity (ActivityType)|Weight|Recovery|Goals>",
@@ -166,7 +174,7 @@ Respond ONLY with valid JSON in this exact structure:
 
 ${kbContext}
 
-Based on the above data and retrieved clinical evidence, generate your review. ${!hasGoal ? 'Note in facts and interpretations that no custom active goals profile has been set yet.' : ''}`;
+Based on the above data and retrieved clinical evidence, generate your review including facts, interpretations, retrospective text, targeted follow-up questions, and recommendations.`;
 
   // ═══════════════════════════════════════════════════════════════
   // STEP 3: GENERATE — Call Groq LLM (llama-3.3-70b-versatile)
@@ -187,6 +195,10 @@ Based on the above data and retrieved clinical evidence, generate your review. $
     const retrospectiveText = typeof llmOutput.retrospectiveText === 'string' && llmOutput.retrospectiveText.length > 20
       ? llmOutput.retrospectiveText
       : buildDeterministicRetrospective(baseDateStr, weeklySummary, interpretations);
+
+    const followUpQuestions = Array.isArray(llmOutput.followUpQuestions) && llmOutput.followUpQuestions.length > 0
+      ? llmOutput.followUpQuestions
+      : buildDeterministicFollowUpQuestions(weeklySummary, targetSleep, targetCals, targetActivity, hasGoal);
 
     let proposedRecommendations = [];
     if (Array.isArray(llmOutput.proposedRecommendations)) {
@@ -215,6 +227,7 @@ Based on the above data and retrieved clinical evidence, generate your review. $
       facts,
       interpretations,
       retrospectiveText,
+      followUpQuestions,
       proposedRecommendations,
       retrievedArticles,
       llmPowered: true
@@ -225,12 +238,14 @@ Based on the above data and retrieved clinical evidence, generate your review. $
   const facts = buildDeterministicFacts(weeklySummary, targetSleep, targetCals, targetActivity, hasGoal);
   const interpretations = buildDeterministicInterpretations(weeklySummary, targetSleep, hasGoal);
   const retrospectiveText = buildDeterministicRetrospective(baseDateStr, weeklySummary, interpretations);
+  const followUpQuestions = buildDeterministicFollowUpQuestions(weeklySummary, targetSleep, targetCals, targetActivity, hasGoal);
   const proposedRecommendations = buildDeterministicRecommendations(weeklySummary, targetSleep, targetCals, targetActivity, retrievedArticles, targetActsList, hasGoal);
 
   return {
     facts,
     interpretations,
     retrospectiveText,
+    followUpQuestions,
     proposedRecommendations,
     retrievedArticles,
     llmPowered: false
@@ -273,6 +288,24 @@ function buildDeterministicInterpretations(ws, targetSleep, hasGoal) {
 
 function buildDeterministicRetrospective(baseDateStr, ws, interpretations) {
   return `Weekly Wellness Retrospective (${baseDateStr}): Over the past 7 days, your sleep averaged ${ws.sleepAvg} hours with an average energy rating of ${ws.energyAvg}/10. You completed ${ws.totalActivityMinutes} minutes of physical activity and consumed an average of ${ws.caloriesAvg} kcal daily. ${interpretations.join(' ')}`;
+}
+
+function buildDeterministicFollowUpQuestions(ws, targetSleep, targetCals, targetActivity, hasGoal) {
+  const q = [];
+  if (ws.sleepAvg < targetSleep) {
+    q.push(`Did late evening screen exposure, room temperature, or work stress contribute to your sleep average of ${ws.sleepAvg} hours?`);
+  }
+  if (ws.energyAvg < 6) {
+    q.push(`You recorded a lower average energy level of ${ws.energyAvg}/10. Did you experience mid-afternoon energy slumps or recovery fatigue?`);
+  }
+  if (ws.caloriesAvg < (targetCals - 200)) {
+    q.push(`Your daily calorie intake averaged ${ws.caloriesAvg} kcal. Were meal sizes reduced on high workout days?`);
+  }
+  if (q.length === 0) {
+    q.push(`What specific nutrition or evening wind-down routines helped you maintain your targets this week?`);
+    q.push(`Are there any new target activities or workout types you would like to include in your next plan version?`);
+  }
+  return q;
 }
 
 function buildDeterministicRecommendations(ws, targetSleep, targetCals, targetActivity, retrievedArticles, targetActsList, hasGoal) {

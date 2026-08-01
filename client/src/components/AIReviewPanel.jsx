@@ -282,6 +282,22 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
               />
             </div>
 
+            {/* SECTION 2.5: Targeted AI Follow-Up Questions */}
+            {reviewData.followUpQuestions && reviewData.followUpQuestions.length > 0 && (
+              <div style={{ background: 'rgba(251, 191, 36, 0.04)', padding: '1.25rem', borderRadius: '10px', border: '1px solid rgba(251, 191, 36, 0.2)' }}>
+                <h4 style={{ fontSize: '0.95rem', color: '#fbbf24', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700' }}>
+                  <Sparkles size={16} /> Targeted AI Follow-Up Questions (Trend Insights)
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {reviewData.followUpQuestions.map((q, idx) => (
+                    <div key={idx} style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.85rem', color: '#e2e8f0' }}>
+                      <strong style={{ color: '#fbbf24', marginRight: '0.4rem' }}>Q{idx + 1}:</strong> {q}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* SECTION 3: Interactive Plan Approval Panel (v1 -> v2) */}
             <div style={{
               background: 'rgba(15, 23, 42, 0.5)',
