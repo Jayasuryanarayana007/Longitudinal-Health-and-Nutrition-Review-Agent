@@ -129,9 +129,9 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
     );
   }
 
-  const activeTargetActivitiesList = (goal && Array.isArray(goal.targetActivities) && goal.targetActivities.length > 0)
+  const activeTargetActivitiesList = (goal && Array.isArray(goal.targetActivities))
     ? goal.targetActivities
-    : targetActivities;
+    : [];
 
   const totalWeeklyTargetMins = activeTargetActivitiesList.reduce((s, a) => s + (parseInt(a.durationMinutes) || 0), 0) * 7;
 
