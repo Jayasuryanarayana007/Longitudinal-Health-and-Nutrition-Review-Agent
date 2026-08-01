@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Longitudinal Health and Nutrition Review Agent",
   "scripts": {
-    "install:all": "npm install && npm install --prefix client && npm install --prefix server",
+    "install:all": "npm install --include=dev && npm install --prefix client --include=dev && npm install --prefix server --include=dev",
     "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
     "build": "npm run install:all && npm run build:client",
     "build:client": "npm run build --prefix client",
