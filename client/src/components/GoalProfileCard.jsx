@@ -191,79 +191,130 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
 
       {/* VIEW MODE */}
       {!isEditing ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          
-          {/* Top 3 Metric Cards: Weight, Calories, Sleep */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-            <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-              <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-                <Scale size={14} style={{ color: '#10b981' }} /> Target Weight
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
-                {goal ? goal.targetWeight : 75.0} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>kg</span>
-              </div>
-            </div>
-
-            <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-              <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-                <Flame size={14} style={{ color: '#06b6d4' }} /> Target Daily Calories
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
-                {goal ? goal.targetDailyCalories : 2000} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>kcal</span>
-              </div>
-            </div>
-
-            <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-              <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-                <Moon size={14} style={{ color: '#a855f7' }} /> Target Sleep Duration
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
-                {goal ? goal.targetSleepHours : 8.0} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>hrs</span>
-              </div>
-            </div>
-          </div>
-
-          {/* MULTIPLE TARGET ACTIVITIES DISPLAY PANEL */}
+        !goal ? (
+          /* EMPTY GOALS CALLOUT STATE FOR NEW USERS */
           <div style={{
-            background: 'rgba(15, 23, 42, 0.4)',
-            padding: '1.25rem',
+            background: 'rgba(16, 185, 129, 0.06)',
+            border: '1px dashed rgba(16, 185, 129, 0.3)',
             borderRadius: '10px',
-            border: '1px solid rgba(245, 158, 11, 0.2)',
+            padding: '2rem 1.5rem',
+            textAlign: 'center',
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.75rem'
+            alignItems: 'center',
+            gap: '1rem'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: '0.85rem', color: '#f59e0b', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Activity size={16} /> Target Physical Activities (Multiple Targets Supported)
-              </div>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                Total Target: <strong style={{ color: '#f8fafc' }}>{totalWeeklyTargetMins} mins / week</strong>
-              </span>
+            <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '0.75rem', borderRadius: '50%', color: '#10b981' }}>
+              <Target size={28} />
             </div>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              {activeTargetActivitiesList.map((act, idx) => (
-                <div key={idx} style={{
-                  background: 'rgba(245, 158, 11, 0.1)',
-                  border: '1px solid rgba(245, 158, 11, 0.25)',
-                  borderRadius: '8px',
-                  padding: '0.5rem 0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.6rem',
-                  color: '#f8fafc'
-                }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fbbf24' }}>{act.type}</span>
-                  <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
-                    {act.durationMinutes} mins {act.quantity ? `(${act.quantity} ${act.unit})` : ''}
-                  </span>
-                </div>
-              ))}
+            <div>
+              <h4 style={{ fontSize: '1.05rem', color: '#f8fafc', margin: '0 0 0.4rem 0', fontWeight: '700' }}>
+                No Active Wellness Goals Configured Yet
+              </h4>
+              <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0, maxWidth: '480px', lineHeight: '1.5' }}>
+                Welcome! Set your custom daily targets for weight, calories, sleep, and target physical activities to personalize your AI wellness reviews and progress tracking.
+              </p>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setFormData({ targetWeight: '70', targetDailyCalories: '2000', targetSleepHours: '8' });
+                setTargetActivities([{ type: 'Walking', durationMinutes: '30', quantity: '5000', unit: 'steps' }]);
+                setIsEditing(true);
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0.65rem 1.5rem',
+                color: '#ffffff',
+                fontWeight: '600',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
+              }}
+            >
+              <Plus size={16} /> Set Your Initial Wellness Goals
+            </button>
           </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            
+            {/* Top 3 Metric Cards: Weight, Calories, Sleep */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
+              <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                  <Scale size={14} style={{ color: '#10b981' }} /> Target Weight
+                </div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
+                  {goal.targetWeight} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>kg</span>
+                </div>
+              </div>
 
-        </div>
+              <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                  <Flame size={14} style={{ color: '#06b6d4' }} /> Target Daily Calories
+                </div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
+                  {goal.targetDailyCalories} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>kcal</span>
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                  <Moon size={14} style={{ color: '#a855f7' }} /> Target Sleep Duration
+                </div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
+                  {goal.targetSleepHours} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>hrs</span>
+                </div>
+              </div>
+            </div>
+
+            {/* MULTIPLE TARGET ACTIVITIES DISPLAY PANEL */}
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.4)',
+              padding: '1.25rem',
+              borderRadius: '10px',
+              border: '1px solid rgba(245, 158, 11, 0.2)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '0.85rem', color: '#f59e0b', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Activity size={16} /> Target Physical Activities (Multiple Targets Supported)
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  Total Target: <strong style={{ color: '#f8fafc' }}>{totalWeeklyTargetMins} mins / week</strong>
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                {activeTargetActivitiesList.map((act, idx) => (
+                  <div key={idx} style={{
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    border: '1px solid rgba(245, 158, 11, 0.25)',
+                    borderRadius: '8px',
+                    padding: '0.5rem 0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    color: '#f8fafc'
+                  }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fbbf24' }}>{act.type}</span>
+                    <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
+                      {act.durationMinutes} mins {act.quantity ? `(${act.quantity} ${act.unit})` : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        )
       ) : (
         /* EDIT MODE FORM */
         <form onSubmit={handleSaveGoals} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

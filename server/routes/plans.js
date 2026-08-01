@@ -58,45 +58,21 @@ router.get('/goals', async (req, res, next) => {
       [userStr]
     );
 
-    // If no goal exists yet, create default v1 goal profile
+    // If no goal exists yet, return goal: null so user can set initial goals explicitly
     if (!activeGoal) {
-      const goalId = 'goal_' + crypto.randomUUID();
-      const createdAt = new Date().toISOString();
-      const defaultActivities = [
-        { type: 'Walking', durationMinutes: 30, quantity: 5000, unit: 'steps' },
-        { type: 'Running', durationMinutes: 20, quantity: 3, unit: 'km' }
+      return res.json({ success: true, goal: null });
+    }
+
+    // Parse targetActivities JSON
+    try {
+      activeGoal.targetActivities = JSON.parse(activeGoal.targetActivities || '[]');
+    } catch (e) {
+      activeGoal.targetActivities = [];
+    }
+    if (!activeGoal.targetActivities || activeGoal.targetActivities.length === 0) {
+      activeGoal.targetActivities = [
+        { type: 'Walking', durationMinutes: activeGoal.targetActivityMinutes || 30, quantity: 5000, unit: 'steps' }
       ];
-
-      await db.run(
-        `INSERT INTO goals (goalId, username, version, targetSleepHours, targetDailyCalories, targetActivityMinutes, targetWeight, targetActivities, status, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [goalId, userStr, 1, 8.0, 2000.0, 50, 75.0, JSON.stringify(defaultActivities), 'Active', createdAt]
-      );
-
-      activeGoal = {
-        goalId,
-        username: userStr,
-        version: 1,
-        targetSleepHours: 8.0,
-        targetDailyCalories: 2000.0,
-        targetActivityMinutes: 50,
-        targetWeight: 75.0,
-        targetActivities: defaultActivities,
-        status: 'Active',
-        createdAt
-      };
-    } else {
-      // Parse targetActivities JSON
-      try {
-        activeGoal.targetActivities = JSON.parse(activeGoal.targetActivities || '[]');
-      } catch (e) {
-        activeGoal.targetActivities = [];
-      }
-      if (!activeGoal.targetActivities || activeGoal.targetActivities.length === 0) {
-        activeGoal.targetActivities = [
-          { type: 'Walking', durationMinutes: activeGoal.targetActivityMinutes || 30, quantity: 5000, unit: 'steps' }
-        ];
-      }
     }
 
     return res.json({ success: true, goal: activeGoal });
