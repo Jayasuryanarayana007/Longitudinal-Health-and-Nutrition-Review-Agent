@@ -23,7 +23,7 @@ flowchart TD
         AuditRoute["/api/audit (Audit Event Explorer & Simulators)"]
         
         ValEngine["Validation Engine\n(Blocking Rules & Warning Banners)"]
-        RAGEngine["AI Wellness Agent\n(RAG Lookups & Gemini API / Fallback)"]
+        RAGEngine["AI Wellness Agent\n(Groq Llama-3.3-70b RAG + Deterministic Fallback)"]
         SafetyFilter["Medical Safety Boundary Filter\n(Clinical Interceptor & Disclaimer)"]
         MealExtractor["Meal Extraction Service\n(Tokenization & Multiplier Parser)"]
     end
@@ -31,6 +31,7 @@ flowchart TD
     subgraph Data ["Database & External Services"]
         SQLite[("SQLite Database\n(users, daily_logs, meals, activities, goals, plans, audit_logs)")]
         KB[("Knowledge Base\n(10 Clinical Evidence Articles)")]
+        Groq_API["Groq LLM API\n(Llama-3.3-70b-versatile)"]
         OFF_API["Open Food Facts REST API\n(Live Nutrition Queries)"]
     end
 
@@ -40,6 +41,7 @@ flowchart TD
     MealExtractor <--> OFF_API
     PlanRoute --> RAGEngine
     RAGEngine <--> KB
+    RAGEngine <--> Groq_API
     LogRoute --> SafetyFilter
     Server <--> SQLite
 ```

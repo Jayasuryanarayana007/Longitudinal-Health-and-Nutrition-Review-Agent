@@ -273,6 +273,7 @@ router.post('/review', async (req, res, next) => {
     return res.json({
       success: true,
       planVersion,
+      llmPowered: reviewResult.llmPowered,
       facts: reviewResult.facts,
       interpretations: reviewResult.interpretations,
       retrospectiveText: reviewResult.retrospectiveText,

@@ -207,6 +207,20 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
         {reviewData && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginTop: '1rem' }}>
             
+            {/* RAG Engine Status Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(30, 41, 59, 0.5)', padding: '0.75rem 1.25rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>RAG Engine Status:</span>
+              {reviewData.llmPowered ? (
+                <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.3rem 0.75rem', borderRadius: '20px' }}>
+                  <Sparkles size={13} /> 🤖 Groq LLM RAG (llama-3.3-70b-versatile)
+                </span>
+              ) : (
+                <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.3rem 0.75rem', borderRadius: '20px' }}>
+                  <CheckCircle size={13} /> ⚡ Local Deterministic Engine
+                </span>
+              )}
+            </div>
+
             {/* SECTION 1: Facts vs. Interpretations Separator */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
               {/* FACTS PANEL */}
