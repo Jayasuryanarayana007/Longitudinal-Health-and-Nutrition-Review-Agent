@@ -93,14 +93,14 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: currentUser.username,
-          targetWeight: parseFloat(formData.targetWeight),
-          targetDailyCalories: parseFloat(formData.targetDailyCalories),
-          targetSleepHours: parseFloat(formData.targetSleepHours),
+          targetWeight: parseFloat(formData.targetWeight) || 75.0,
+          targetDailyCalories: parseFloat(formData.targetDailyCalories) || 2000.0,
+          targetSleepHours: parseFloat(formData.targetSleepHours) || 8.0,
           targetActivities: targetActivities.map(a => ({
-            type: a.type,
+            type: a.type || 'Workout',
             durationMinutes: parseInt(a.durationMinutes) || 15,
             quantity: a.quantity ? parseFloat(a.quantity) : null,
-            unit: a.unit
+            unit: a.unit || 'mins'
           }))
         })
       });
@@ -156,7 +156,16 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
 
         <button
           type="button"
-          onClick={() => setIsEditing(!isEditing)}
+          onClick={() => {
+            if (!isEditing && (!formData.targetWeight || !formData.targetDailyCalories || !formData.targetSleepHours)) {
+              setFormData({
+                targetWeight: goal?.targetWeight ? String(goal.targetWeight) : '75',
+                targetDailyCalories: goal?.targetDailyCalories ? String(goal.targetDailyCalories) : '2000',
+                targetSleepHours: goal?.targetSleepHours ? String(goal.targetSleepHours) : '8'
+              });
+            }
+            setIsEditing(!isEditing);
+          }}
           style={{
             background: isEditing ? 'rgba(255,255,255,0.08)' : 'rgba(16, 185, 129, 0.15)',
             border: '1px solid rgba(16, 185, 129, 0.3)',

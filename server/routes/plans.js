@@ -92,9 +92,9 @@ router.post('/goals', async (req, res, next) => {
   }
 
   const userStr = String(username).trim().toLowerCase();
-  const sleepVal = parseFloat(targetSleepHours) || 8.0;
-  const calsVal = parseFloat(targetDailyCalories) || 2000.0;
-  const weightVal = parseFloat(targetWeight) || 75.0;
+  const sleepVal = isNaN(parseFloat(targetSleepHours)) ? 8.0 : parseFloat(targetSleepHours);
+  const calsVal = isNaN(parseFloat(targetDailyCalories)) ? 2000.0 : parseFloat(targetDailyCalories);
+  const weightVal = isNaN(parseFloat(targetWeight)) ? 75.0 : parseFloat(targetWeight);
 
   // Process multiple target activities array
   let activitiesList = [];
