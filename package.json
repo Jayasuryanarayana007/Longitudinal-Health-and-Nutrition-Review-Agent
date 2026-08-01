@@ -5,7 +5,7 @@
   "scripts": {
     "install:all": "npm install && npm install --prefix client && npm install --prefix server",
     "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
-    "build": "npm run build --prefix client",
+    "build": "npm run install:all && npm run build:client",
     "build:client": "npm run build --prefix client",
     "start": "NODE_ENV=production node server/index.js",
     "server": "npm run dev --prefix server",
