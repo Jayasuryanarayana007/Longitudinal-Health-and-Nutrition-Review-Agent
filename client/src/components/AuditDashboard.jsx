@@ -5,7 +5,6 @@ export default function AuditDashboard({ currentUser }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [scopeFilter, setScopeFilter] = useState('user'); // 'user' (isolated) or 'all' (system-wide)
   const [eventTypeFilter, setEventTypeFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedLogId, setExpandedLogId] = useState(null);
@@ -18,10 +17,7 @@ export default function AuditDashboard({ currentUser }) {
     setLoading(true);
     setError(null);
     try {
-      let url = `/api/audit/logs?eventType=${encodeURIComponent(eventTypeFilter)}`;
-      if (scopeFilter === 'user' && currentUser?.username) {
-        url += `&username=${encodeURIComponent(currentUser.username)}`;
-      }
+      const url = `/api/audit/logs?username=${encodeURIComponent(currentUser.username)}&eventType=${encodeURIComponent(eventTypeFilter)}`;
       const response = await fetch(url);
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Failed to fetch audit logs.');
@@ -36,7 +32,7 @@ export default function AuditDashboard({ currentUser }) {
   useEffect(() => {
     fetchAuditLogs();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventTypeFilter, scopeFilter]);
+  }, [eventTypeFilter, currentUser.username]);
 
   const handleSimulateFailure = async (failureType) => {
     setSimulating(true);
@@ -182,41 +178,21 @@ export default function AuditDashboard({ currentUser }) {
         {/* Filter Controls Bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {/* Scope Switcher: User vs All */}
-            <div style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '0.2rem' }}>
-              <button
-                type="button"
-                onClick={() => setScopeFilter('user')}
-                style={{
-                  background: scopeFilter === 'user' ? '#1e293b' : 'transparent',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '0.4rem 0.85rem',
-                  color: scopeFilter === 'user' ? '#38bdf8' : '#94a3b8',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                👤 My Audit Logs
-              </button>
-              <button
-                type="button"
-                onClick={() => setScopeFilter('all')}
-                style={{
-                  background: scopeFilter === 'all' ? '#1e293b' : 'transparent',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '0.4rem 0.85rem',
-                  color: scopeFilter === 'all' ? '#fbbf24' : '#94a3b8',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                🌐 All System Audit Logs
-              </button>
-            </div>
+            {/* User Audit Log Indicator Badge */}
+            <span style={{
+              background: 'rgba(56, 189, 248, 0.12)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '20px',
+              padding: '0.35rem 0.85rem',
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem'
+            }}>
+              👤 My Audit Log Trail
+            </span>
 
             <label className="auth-label" style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>Filter Event:</label>
             <select

@@ -7,6 +7,10 @@ const router = Router();
 // GET /api/audit/logs - Retrieve chronological audit log records
 router.get('/logs', async (req, res, next) => {
   const { username, eventType, limit } = req.query;
+  if (!username || !String(username).trim()) {
+    return res.status(400).json({ success: false, message: 'Username parameter is required to view isolated audit logs.' });
+  }
+
   const maxLimit = parseInt(limit) || 100;
 
   let db;
@@ -17,10 +21,8 @@ router.get('/logs', async (req, res, next) => {
     const params = [];
     const conditions = [];
 
-    if (username) {
-      conditions.push('username = ?');
-      params.push(String(username).trim().toLowerCase());
-    }
+    conditions.push('username = ?');
+    params.push(String(username).trim().toLowerCase());
 
     if (eventType && eventType !== 'All') {
       conditions.push('eventType = ?');
