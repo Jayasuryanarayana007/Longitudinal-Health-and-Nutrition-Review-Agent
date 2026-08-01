@@ -228,6 +228,7 @@ router.post('/review', async (req, res, next) => {
     }
 
     const weeklySummary = {
+      logCount: logs.length,
       sleepAvg: sleepCount > 0 ? parseFloat((sleepSum / sleepCount).toFixed(1)) : 0,
       energyAvg: energyCount > 0 ? parseFloat((energySum / energyCount).toFixed(1)) : 0,
       moodAvg: moodCount > 0 ? parseFloat((moodSum / moodCount).toFixed(1)) : 0,
