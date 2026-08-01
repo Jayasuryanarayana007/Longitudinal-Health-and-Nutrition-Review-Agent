@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import crypto from 'crypto';
-import { getDbConnection } from '../data/db.js';
+import { getDbConnection, ensureUserExists } from '../data/db.js';
 import { validateLogBoundaries, checkInconsistencies, detectMissingDays } from '../utils/validationEngine.js';
 import { extractMealData } from '../services/mealExtractionService.js';
 
@@ -138,12 +138,14 @@ router.post('/', async (req, res, next) => {
   let db;
   try {
     db = await getDbConnection();
+    const canonicalUser = await ensureUserExists(db, userStr);
+
     await db.run('BEGIN TRANSACTION');
 
     // Check if log already exists for this user and date
     let existingLog = await db.get(
       'SELECT logId FROM daily_logs WHERE username = ? AND date = ?',
-      [userStr, dateStr]
+      [canonicalUser, dateStr]
     );
 
     let logId;

@@ -18,15 +18,30 @@ export async function getDbConnection() {
   return db;
 }
 
+export async function ensureUserExists(db, username) {
+  if (!username) return null;
+  const userStr = String(username).trim().toLowerCase();
+  
+  let user = await db.get('SELECT username FROM users WHERE LOWER(username) = ?', [userStr]);
+  if (!user) {
+    const createdAt = new Date().toISOString();
+    await db.run(
+      `INSERT OR IGNORE INTO users (username, name, email, passwordHash, dob, sex, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [userStr, userStr, `${userStr}@app.com`, 'hash_placeholder', '1995-01-01', 'Other', createdAt]
+    );
+    user = { username: userStr };
+  }
+  return user.username;
+}
+
 export async function initDb() {
   const db = await getDbConnection();
-
-  // Create tables (foreign_keys PRAGMA already enabled by getDbConnection)
 
   // Create tables
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
-      username TEXT PRIMARY KEY,
+      username TEXT PRIMARY KEY COLLATE NOCASE,
       name TEXT,
       email TEXT UNIQUE,
       passwordHash TEXT,
@@ -37,7 +52,7 @@ export async function initDb() {
 
     CREATE TABLE IF NOT EXISTS goals (
       goalId TEXT PRIMARY KEY,
-      username TEXT,
+      username TEXT COLLATE NOCASE,
       version INTEGER,
       targetSleepHours REAL,
       targetDailyCalories REAL,
@@ -51,7 +66,7 @@ export async function initDb() {
 
     CREATE TABLE IF NOT EXISTS daily_logs (
       logId TEXT PRIMARY KEY,
-      username TEXT,
+      username TEXT COLLATE NOCASE,
       date TEXT,
       weight REAL,
       height REAL,
@@ -66,7 +81,7 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS meals (
       mealId TEXT PRIMARY KEY,
       logId TEXT,
-      username TEXT,
+      username TEXT COLLATE NOCASE,
       textInput TEXT,
       aiEstimates TEXT,
       correctedEstimates TEXT,
@@ -80,7 +95,7 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS activities (
       activityId TEXT PRIMARY KEY,
       logId TEXT,
-      username TEXT,
+      username TEXT COLLATE NOCASE,
       type TEXT,
       durationMinutes INTEGER,
       quantity REAL,
@@ -93,7 +108,7 @@ export async function initDb() {
 
     CREATE TABLE IF NOT EXISTS plans (
       planId TEXT PRIMARY KEY,
-      username TEXT,
+      username TEXT COLLATE NOCASE,
       version INTEGER,
       status TEXT,
       suggestions TEXT,
@@ -105,7 +120,7 @@ export async function initDb() {
 
     CREATE TABLE IF NOT EXISTS audit_logs (
       logId TEXT PRIMARY KEY,
-      username TEXT,
+      username TEXT COLLATE NOCASE,
       timestamp TEXT,
       eventType TEXT,
       description TEXT,
@@ -113,14 +128,17 @@ export async function initDb() {
       FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
     );
   `);
-  
-  // Column Migration Check
+
+  // Migration: Ensure targetActivities column exists in goals table
   try {
-    await db.exec('ALTER TABLE goals ADD COLUMN targetActivities TEXT');
-  } catch (e) {
-    // Column already exists, ignore
+    const goalsTableInfo = await db.all(`PRAGMA table_info(goals)`);
+    const hasTargetActivities = goalsTableInfo.some(col => col.name === 'targetActivities');
+    if (!hasTargetActivities) {
+      await db.exec(`ALTER TABLE goals ADD COLUMN targetActivities TEXT`);
+    }
+  } catch (err) {
+    // Ignore migration error if already exists
   }
 
-  console.log('Database tables initialized successfully.');
   await db.close();
 }

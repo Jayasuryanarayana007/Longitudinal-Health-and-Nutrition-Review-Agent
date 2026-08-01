@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import crypto from 'crypto';
-import { getDbConnection } from '../data/db.js';
+import { getDbConnection, ensureUserExists } from '../data/db.js';
 import { generateRetrospectiveAndPlan } from '../services/aiWellnessAgent.js';
 
 const router = Router();
@@ -114,18 +114,20 @@ router.post('/goals', async (req, res, next) => {
   let db;
   try {
     db = await getDbConnection();
+    const canonicalUser = await ensureUserExists(db, userStr);
+
     await db.run('BEGIN TRANSACTION');
 
     // Get current version
     const currentGoal = await db.get(
       'SELECT version FROM goals WHERE username = ? ORDER BY version DESC LIMIT 1',
-      [userStr]
+      [canonicalUser]
     );
 
     const newVersion = currentGoal ? currentGoal.version + 1 : 1;
 
     // Mark previous active goals as Superseded
-    await db.run('UPDATE goals SET status = "Superseded" WHERE username = ?', [userStr]);
+    await db.run('UPDATE goals SET status = "Superseded" WHERE username = ?', [canonicalUser]);
 
     // Insert new Active goal version
     const newGoalId = 'goal_' + crypto.randomUUID();
@@ -133,7 +135,7 @@ router.post('/goals', async (req, res, next) => {
     await db.run(
       `INSERT INTO goals (goalId, username, version, targetSleepHours, targetDailyCalories, targetActivityMinutes, targetWeight, targetActivities, status, createdAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [newGoalId, userStr, newVersion, sleepVal, calsVal, totalActMins, weightVal, JSON.stringify(activitiesList), 'Active', createdAt]
+      [newGoalId, canonicalUser, newVersion, sleepVal, calsVal, totalActMins, weightVal, JSON.stringify(activitiesList), 'Active', createdAt]
     );
 
     await db.run('COMMIT');
