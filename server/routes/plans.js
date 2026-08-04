@@ -16,10 +16,11 @@ router.get('/active', async (req, res, next) => {
   let db;
   try {
     db = await getDbConnection();
+    const canonicalUser = await ensureUserExists(db, userStr);
 
     const activePlan = await db.get(
       'SELECT * FROM plans WHERE username = ? AND status = "Active" ORDER BY version DESC LIMIT 1',
-      [userStr]
+      [canonicalUser]
     );
 
     if (!activePlan) {
@@ -52,10 +53,11 @@ router.get('/goals', async (req, res, next) => {
   let db;
   try {
     db = await getDbConnection();
+    const canonicalUser = await ensureUserExists(db, userStr);
 
     let activeGoal = await db.get(
       'SELECT * FROM goals WHERE username = ? AND status = "Active" ORDER BY version DESC LIMIT 1',
-      [userStr]
+      [canonicalUser]
     );
 
     // If no goal exists yet, return goal: null so user can set initial goals explicitly
@@ -157,6 +159,7 @@ router.post('/goals', async (req, res, next) => {
   }
 });
 
+// POST /api/plans/review - Generate AI Weekly Retrospective & RAG Plan Recommendations
 router.post('/review', async (req, res, next) => {
   const { username, date, followUpAnswers } = req.body;
   if (!username || !date) {
@@ -169,11 +172,12 @@ router.post('/review', async (req, res, next) => {
   let db;
   try {
     db = await getDbConnection();
+    const canonicalUser = await ensureUserExists(db, userStr);
 
     // 1. Fetch Active Goal
     let activeGoal = await db.get(
       'SELECT * FROM goals WHERE username = ? AND status = "Active" ORDER BY version DESC LIMIT 1',
-      [userStr]
+      [canonicalUser]
     );
 
     // 2. Fetch Weekly Summaries from backend endpoint helper logic
@@ -184,7 +188,7 @@ router.post('/review', async (req, res, next) => {
 
     const logs = await db.all(
       `SELECT * FROM daily_logs WHERE username = ? AND date >= ? AND date <= ? ORDER BY date ASC`,
-      [userStr, startDateStr, baseDateStr]
+      [canonicalUser, startDateStr, baseDateStr]
     );
 
     let sleepSum = 0, sleepCount = 0, energySum = 0, energyCount = 0, moodSum = 0, moodCount = 0;
@@ -242,10 +246,10 @@ router.post('/review', async (req, res, next) => {
     };
 
     // 3. Generate Review & Plan via AI Agent (passing user's follow-up answers for context enrichment)
-    const reviewResult = await generateRetrospectiveAndPlan(userStr, baseDateStr, weeklySummary, activeGoal, followUpAnswers);
+    const reviewResult = await generateRetrospectiveAndPlan(canonicalUser, baseDateStr, weeklySummary, activeGoal, followUpAnswers);
 
     // Get current plan version
-    const currentPlan = await db.get('SELECT version FROM plans WHERE username = ? ORDER BY version DESC LIMIT 1', [userStr]);
+    const currentPlan = await db.get('SELECT version FROM plans WHERE username = ? ORDER BY version DESC LIMIT 1', [canonicalUser]);
     const planVersion = currentPlan ? currentPlan.version + 1 : 1;
 
     return res.json({
@@ -280,10 +284,12 @@ router.post('/approve', async (req, res, next) => {
   let db;
   try {
     db = await getDbConnection();
+    const canonicalUser = await ensureUserExists(db, userStr);
+
     await db.run('BEGIN TRANSACTION');
 
     // Mark existing plans as Superseded
-    await db.run('UPDATE plans SET status = "Superseded" WHERE username = ?', [userStr]);
+    await db.run('UPDATE plans SET status = "Superseded" WHERE username = ?', [canonicalUser]);
 
     // Insert new Active plan
     const planId = 'plan_' + crypto.randomUUID();
@@ -291,12 +297,12 @@ router.post('/approve', async (req, res, next) => {
     await db.run(
       `INSERT INTO plans (planId, username, version, status, suggestions, createdAt, responseAt)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [planId, userStr, versionNum, 'Active', JSON.stringify(suggestions || []), createdAt, createdAt]
+      [planId, canonicalUser, versionNum, 'Active', JSON.stringify(suggestions || []), createdAt, createdAt]
     );
 
     // Sync active goal profile targets if recommendations included target values
     if (suggestions && Array.isArray(suggestions)) {
-      const activeGoal = await db.get('SELECT * FROM goals WHERE username = ? AND status = "Active" ORDER BY version DESC LIMIT 1', [userStr]);
+      const activeGoal = await db.get('SELECT * FROM goals WHERE username = ? AND status = "Active" ORDER BY version DESC LIMIT 1', [canonicalUser]);
       let newSleep = activeGoal ? activeGoal.targetSleepHours : 8.0;
       let newCals = activeGoal ? activeGoal.targetDailyCalories : 2000.0;
       let newAct = activeGoal ? activeGoal.targetActivityMinutes : 30;
@@ -308,14 +314,14 @@ router.post('/approve', async (req, res, next) => {
       });
 
       const goalVersion = activeGoal ? activeGoal.version + 1 : 1;
-      await db.run('UPDATE goals SET status = "Superseded" WHERE username = ?', [userStr]);
+      await db.run('UPDATE goals SET status = "Superseded" WHERE username = ?', [canonicalUser]);
 
       const goalId = 'goal_' + crypto.randomUUID();
       const existingActivitiesStr = activeGoal ? activeGoal.targetActivities : null;
       await db.run(
         `INSERT INTO goals (goalId, username, version, targetSleepHours, targetDailyCalories, targetActivityMinutes, targetWeight, targetActivities, status, createdAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [goalId, userStr, goalVersion, newSleep, newCals, newAct, activeGoal ? activeGoal.targetWeight : 75.0, existingActivitiesStr, 'Active', createdAt]
+        [goalId, canonicalUser, goalVersion, newSleep, newCals, newAct, activeGoal ? activeGoal.targetWeight : 75.0, existingActivitiesStr, 'Active', createdAt]
       );
     }
 
@@ -327,7 +333,7 @@ router.post('/approve', async (req, res, next) => {
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
           auditId,
-          userStr,
+          canonicalUser,
           createdAt,
           'PlanModification',
           `User modified plan target recommendations before approving version v${versionNum}`,
@@ -360,6 +366,8 @@ router.post('/reject', async (req, res, next) => {
   let db;
   try {
     db = await getDbConnection();
+    const canonicalUser = await ensureUserExists(db, userStr);
+
     await db.run('BEGIN TRANSACTION');
 
     const planId = 'plan_rej_' + crypto.randomUUID();
@@ -368,7 +376,7 @@ router.post('/reject', async (req, res, next) => {
     await db.run(
       `INSERT INTO plans (planId, username, version, status, suggestions, createdAt, responseAt, userRejectionReason)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [planId, userStr, parseInt(planVersion) || 1, 'Rejected', JSON.stringify([]), createdAt, createdAt, reasonStr]
+      [planId, canonicalUser, parseInt(planVersion) || 1, 'Rejected', JSON.stringify([]), createdAt, createdAt, reasonStr]
     );
 
     // Audit Event: RejectedRecommendation
@@ -378,7 +386,7 @@ router.post('/reject', async (req, res, next) => {
        VALUES (?, ?, ?, ?, ?, ?)`,
       [
         auditId,
-        userStr,
+        canonicalUser,
         createdAt,
         'RejectedRecommendation',
         `User rejected proposed plan recommendations`,
