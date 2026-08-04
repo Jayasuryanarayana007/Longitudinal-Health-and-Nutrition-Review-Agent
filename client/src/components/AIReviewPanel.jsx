@@ -298,7 +298,7 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
                       </div>
                       <input
                         type="text"
-                        placeholder="Type your response to personalize next week's review..."
+                        placeholder="Type your response to refine current plan recommendations..."
                         value={followUpAnswers[idx] || ''}
                         onChange={(e) => setFollowUpAnswers({ ...followUpAnswers, [idx]: e.target.value })}
                         className="auth-input"
@@ -306,6 +306,29 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
                       />
                     </div>
                   ))}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.85rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleGenerateReview}
+                    disabled={generating}
+                    style={{
+                      background: 'rgba(251, 191, 36, 0.15)',
+                      border: '1px solid rgba(251, 191, 36, 0.4)',
+                      color: '#fbbf24',
+                      borderRadius: '6px',
+                      padding: '0.55rem 1.1rem',
+                      fontSize: '0.82rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem'
+                    }}
+                  >
+                    <Sparkles size={14} /> {generating ? 'Refine Plan...' : '✨ Refine Current Plan Recommendations with My Answers'}
+                  </button>
                 </div>
               </div>
             )}
