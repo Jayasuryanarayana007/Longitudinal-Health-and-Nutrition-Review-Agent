@@ -256,6 +256,7 @@ router.post('/review', async (req, res, next) => {
       facts: reviewResult.facts,
       interpretations: reviewResult.interpretations,
       retrospectiveText: reviewResult.retrospectiveText,
+      followUpQuestions: reviewResult.followUpQuestions || [],
       proposedRecommendations: reviewResult.proposedRecommendations,
       retrievedArticles: reviewResult.retrievedArticles
     });
