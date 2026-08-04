@@ -22,13 +22,14 @@ router.post('/extract-meal', async (req, res, next) => {
     let db;
     try {
       db = await getDbConnection();
+      const safetyUser = await ensureUserExists(db, username ? String(username).trim().toLowerCase() : 'system_safety');
       const auditId = 'audit_med_' + crypto.randomUUID();
       await db.run(
         `INSERT INTO audit_logs (logId, username, timestamp, eventType, description, details)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
           auditId,
-          username ? String(username).trim().toLowerCase() : 'system_safety',
+          safetyUser,
           new Date().toISOString(),
           'MedicalSafetyBypass',
           'Clinical query or medical advice request intercepted by Safety Refusal Filter',
@@ -168,7 +169,7 @@ router.post('/', async (req, res, next) => {
       await db.run(
         `INSERT INTO daily_logs (logId, username, date, weight, height, sleepHours, moodScore, energyScore, createdAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [logId, userStr, dateStr, weightVal, heightVal, sleepVal, moodVal, energyVal, createdAt]
+        [logId, canonicalUser, dateStr, weightVal, heightVal, sleepVal, moodVal, energyVal, createdAt]
       );
     }
 
@@ -185,7 +186,7 @@ router.post('/', async (req, res, next) => {
         await db.run(
           `INSERT INTO meals (mealId, logId, username, textInput, aiEstimates, correctedEstimates, isUserCorrected, isAiUncertain, createdAt)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [mealId, logId, userStr, m.textInput || 'Meal Entry', aiEstimatesStr, correctedEstimatesStr, isUserCorrected, isAiUncertain, createdAt]
+          [mealId, logId, canonicalUser, m.textInput || 'Meal Entry', aiEstimatesStr, correctedEstimatesStr, isUserCorrected, isAiUncertain, createdAt]
         );
 
         // Audit Event 1: UserCorrection event
@@ -196,7 +197,7 @@ router.post('/', async (req, res, next) => {
              VALUES (?, ?, ?, ?, ?, ?)`,
             [
               auditId,
-              userStr,
+              canonicalUser,
               createdAt,
               'UserCorrection',
               `User corrected AI meal estimates for "${m.textInput || 'Meal'}"`,
@@ -218,7 +219,7 @@ router.post('/', async (req, res, next) => {
              VALUES (?, ?, ?, ?, ?, ?)`,
             [
               auditId,
-              userStr,
+              canonicalUser,
               createdAt,
               'AIUncertainty',
               `AI parsing flagged uncertainty for meal "${m.textInput || 'Meal'}"`,
@@ -241,7 +242,7 @@ router.post('/', async (req, res, next) => {
         await db.run(
           `INSERT INTO activities (activityId, logId, username, type, durationMinutes, quantity, unit, intensity, createdAt)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [activityId, logId, userStr, act.type.trim(), parseInt(act.durationMinutes), act.quantity ? parseFloat(act.quantity) : null, act.unit ? act.unit.trim() : null, act.intensity || 'Medium', createdAt]
+          [activityId, logId, canonicalUser, act.type.trim(), parseInt(act.durationMinutes), act.quantity ? parseFloat(act.quantity) : null, act.unit ? act.unit.trim() : null, act.intensity || 'Medium', createdAt]
         );
       }
     }

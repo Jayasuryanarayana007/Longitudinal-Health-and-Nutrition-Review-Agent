@@ -179,6 +179,11 @@ export default function Dashboard({ currentUser }) {
           <span>{seedSuccess}</span>
         </div>
       )}
+      {error && (
+        <div className="alert-banner danger">
+          <span>{error}</span>
+        </div>
+      )}
       {/* Missing Log Detector Top Alert Banner */}
       {summaryData && summaryData.missingDays && summaryData.missingDays.length > 0 && (
         <div style={{
@@ -280,8 +285,8 @@ export default function Dashboard({ currentUser }) {
               <TrendCharts
                 dailyHistory={
                   chartRange === 7 
-                    ? summaryData.dailyHistory.slice(-7) 
-                    : summaryData.dailyHistory
+                    ? (summaryData.dailyHistory || []).slice(-7) 
+                    : (summaryData.dailyHistory || [])
                 }
               />
             </div>

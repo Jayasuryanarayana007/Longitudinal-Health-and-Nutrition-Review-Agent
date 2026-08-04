@@ -14,7 +14,7 @@ import { callGroqLLM } from './groqService.js';
  * 7. PARSE & FALLBACK    — Extract structured JSON with seamless deterministic fallback
  */
 
-export async function generateRetrospectiveAndPlan(userStr, baseDateStr, weeklySummary, activeGoal) {
+export async function generateRetrospectiveAndPlan(userStr, baseDateStr, weeklySummary, activeGoal, userFollowUpAnswers = null) {
 
   // ═══════════════════════════════════════════════════════════════
   // EDGE CASE 1: NO LOGS RECORDED (logCount === 0)

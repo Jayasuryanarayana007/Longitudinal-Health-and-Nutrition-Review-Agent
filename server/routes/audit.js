@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import crypto from 'crypto';
-import { getDbConnection } from '../data/db.js';
+import { getDbConnection, ensureUserExists } from '../data/db.js';
 
 const router = Router();
 
@@ -70,6 +70,7 @@ router.post('/simulate-failure', async (req, res, next) => {
   let db;
   try {
     db = await getDbConnection();
+    const canonicalUser = await ensureUserExists(db, userStr);
 
     const auditId = 'audit_fail_' + crypto.randomUUID();
     const timestamp = new Date().toISOString();
@@ -81,7 +82,7 @@ router.post('/simulate-failure', async (req, res, next) => {
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
           auditId,
-          userStr,
+          canonicalUser,
           timestamp,
           'WorkflowFailure',
           'Simulated 504 Gateway Timeout error on external service call',
@@ -103,7 +104,7 @@ router.post('/simulate-failure', async (req, res, next) => {
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
           auditId,
-          userStr,
+          canonicalUser,
           timestamp,
           'WorkflowFailure',
           'Simulated 503 Service Unavailable error on external integration',

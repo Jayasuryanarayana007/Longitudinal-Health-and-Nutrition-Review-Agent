@@ -571,7 +571,7 @@ export default function DataLogger({ currentUser }) {
           {meals.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
               {meals.map((meal, index) => {
-                const mealCals = meal.items.reduce((sum, item) => sum + item.calories, 0);
+                const mealCals = (meal.items || []).reduce((sum, item) => sum + item.calories, 0);
                 return (
                   <div key={index} style={{
                     background: 'rgba(15, 23, 42, 0.4)',
@@ -605,7 +605,7 @@ export default function DataLogger({ currentUser }) {
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {meal.items.map((item, idx) => (
+                      {(meal.items || []).map((item, idx) => (
                         <div key={idx} style={{
                           fontSize: '0.8rem',
                           background: 'rgba(255,255,255,0.04)',

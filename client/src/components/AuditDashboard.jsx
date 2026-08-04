@@ -77,10 +77,10 @@ export default function AuditDashboard({ currentUser }) {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
-      l.logId.toLowerCase().includes(q) ||
-      l.username.toLowerCase().includes(q) ||
-      l.description.toLowerCase().includes(q) ||
-      l.eventType.toLowerCase().includes(q)
+      String(l.logId || '').toLowerCase().includes(q) ||
+      String(l.username || '').toLowerCase().includes(q) ||
+      String(l.description || '').toLowerCase().includes(q) ||
+      String(l.eventType || '').toLowerCase().includes(q)
     );
   });
 

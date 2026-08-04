@@ -250,7 +250,7 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
                   <FileText size={16} /> Factual Statistics (Logged Data)
                 </h4>
                 <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#e2e8f0', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {reviewData.facts.map((fact, idx) => (
+                  {(reviewData.facts || []).map((fact, idx) => (
                     <li key={idx}>{fact}</li>
                   ))}
                 </ul>
@@ -262,7 +262,7 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
                   <Sparkles size={16} /> Contextual AI Hypotheses (Interpretations)
                 </h4>
                 <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#e2e8f0', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {reviewData.interpretations.map((interp, idx) => (
+                  {(reviewData.interpretations || []).map((interp, idx) => (
                     <li key={idx}>{interp}</li>
                   ))}
                 </ul>

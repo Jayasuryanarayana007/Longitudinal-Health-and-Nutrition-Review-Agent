@@ -14,7 +14,11 @@ export default function App() {
   useEffect(() => {
     const session = sessionStorage.getItem('wellness_session');
     if (session) {
-      setCurrentUser(JSON.parse(session));
+      try {
+        setCurrentUser(JSON.parse(session));
+      } catch (e) {
+        sessionStorage.removeItem('wellness_session');
+      }
     }
   }, []);
 
@@ -53,8 +57,10 @@ export default function App() {
               Logged in as <strong className="app-user-name">{currentUser.name || currentUser.username}</strong>
               <span className="app-divider">|</span>
               {currentUser.sex} ({(() => {
+                if (!currentUser.dob) return 'N/A';
                 const today = new Date();
                 const birth = new Date(currentUser.dob);
+                if (isNaN(birth.getTime())) return 'N/A';
                 let age = today.getFullYear() - birth.getFullYear();
                 const monthDiff = today.getMonth() - birth.getMonth();
                 if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
