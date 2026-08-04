@@ -1,5 +1,5 @@
 // Comprehensive Breakage Test Suite v2 — 22 tests
-const BASE = 'http://localhost:5000';
+const BASE = 'http://127.0.0.1:5000';
 const H = { 'Content-Type': 'application/json' };
 const tests = [];
 

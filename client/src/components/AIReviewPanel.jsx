@@ -10,6 +10,7 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
   const [editedRetroText, setEditedRetroText] = useState('');
   const [userSuggestions, setUserSuggestions] = useState([]);
   const [userModified, setUserModified] = useState(false);
+  const [followUpAnswers, setFollowUpAnswers] = useState({});
 
   // UI state for expandable evidence accordions (mapped by recommendation index)
   const [expandedEvidence, setExpandedEvidence] = useState({});
@@ -288,10 +289,20 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
                 <h4 style={{ fontSize: '0.95rem', color: '#fbbf24', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700' }}>
                   <Sparkles size={16} /> Targeted AI Follow-Up Questions (Trend Insights)
                 </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                   {reviewData.followUpQuestions.map((q, idx) => (
-                    <div key={idx} style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.85rem', color: '#e2e8f0' }}>
-                      <strong style={{ color: '#fbbf24', marginRight: '0.4rem' }}>Q{idx + 1}:</strong> {q}
+                    <div key={idx} style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.85rem', color: '#e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div>
+                        <strong style={{ color: '#fbbf24', marginRight: '0.4rem' }}>Q{idx + 1}:</strong> {q}
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Type your response to personalize next week's review..."
+                        value={followUpAnswers[idx] || ''}
+                        onChange={(e) => setFollowUpAnswers({ ...followUpAnswers, [idx]: e.target.value })}
+                        className="auth-input"
+                        style={{ padding: '0.5rem 0.75rem', fontSize: '0.82rem', background: 'rgba(30, 41, 59, 0.7)' }}
+                      />
                     </div>
                   ))}
                 </div>
