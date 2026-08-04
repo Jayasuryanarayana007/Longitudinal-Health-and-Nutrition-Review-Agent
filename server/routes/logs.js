@@ -501,12 +501,14 @@ router.post('/seed', async (req, res, next) => {
   let db;
   try {
     db = await getDbConnection();
+    const canonicalUser = await ensureUserExists(db, userStr);
+
     await db.run('BEGIN TRANSACTION');
 
     // Clean slate: delete ALL user data by username (catches orphans from partial failures)
-    await db.run('DELETE FROM meals WHERE username = ?', [userStr]);
-    await db.run('DELETE FROM activities WHERE username = ?', [userStr]);
-    await db.run('DELETE FROM daily_logs WHERE username = ?', [userStr]);
+    await db.run('DELETE FROM meals WHERE username = ?', [canonicalUser]);
+    await db.run('DELETE FROM activities WHERE username = ?', [canonicalUser]);
+    await db.run('DELETE FROM daily_logs WHERE username = ?', [canonicalUser]);
 
     const today = new Date();
     const createdAt = new Date().toISOString();
@@ -532,7 +534,7 @@ router.post('/seed', async (req, res, next) => {
       await db.run(
         `INSERT INTO daily_logs (logId, username, date, weight, height, sleepHours, moodScore, energyScore, createdAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [logId, userStr, dateStr, weight, height, sleepHours, moodScore, energyScore, createdAt]
+        [logId, canonicalUser, dateStr, weight, height, sleepHours, moodScore, energyScore, createdAt]
       );
 
       // Seed 2 meals per day
@@ -544,7 +546,7 @@ router.post('/seed', async (req, res, next) => {
       await db.run(
         `INSERT INTO meals (mealId, logId, username, textInput, aiEstimates, correctedEstimates, isUserCorrected, isAiUncertain, createdAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [breakfastId, logId, userStr, 'Oatmeal and coffee for breakfast', JSON.stringify(breakfastItems), JSON.stringify(breakfastItems), 0, 0, createdAt]
+        [breakfastId, logId, canonicalUser, 'Oatmeal and coffee for breakfast', JSON.stringify(breakfastItems), JSON.stringify(breakfastItems), 0, 0, createdAt]
       );
 
       const dinnerId = 'meal_seed_' + crypto.randomUUID();
@@ -558,7 +560,7 @@ router.post('/seed', async (req, res, next) => {
       await db.run(
         `INSERT INTO meals (mealId, logId, username, textInput, aiEstimates, correctedEstimates, isUserCorrected, isAiUncertain, createdAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [dinnerId, logId, userStr, 'Chicken, rice, and veggies for dinner', JSON.stringify(dinnerItems), JSON.stringify(dinnerItems), 0, 0, createdAt]
+        [dinnerId, logId, canonicalUser, 'Chicken, rice, and veggies for dinner', JSON.stringify(dinnerItems), JSON.stringify(dinnerItems), 0, 0, createdAt]
       );
 
       // Seed workouts every other day
@@ -569,14 +571,14 @@ router.post('/seed', async (req, res, next) => {
           await db.run(
             `INSERT INTO activities (activityId, logId, username, type, durationMinutes, quantity, unit, intensity, createdAt)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [actId, logId, userStr, 'Walking', 45, 10000, 'steps', 'Low', createdAt]
+            [actId, logId, canonicalUser, 'Walking', 45, 10000, 'steps', 'Low', createdAt]
           );
         } else {
           // Log running distance
           await db.run(
             `INSERT INTO activities (activityId, logId, username, type, durationMinutes, quantity, unit, intensity, createdAt)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [actId, logId, userStr, 'Running', 30, 5, 'km', 'High', createdAt]
+            [actId, logId, canonicalUser, 'Running', 30, 5, 'km', 'High', createdAt]
           );
         }
       }
