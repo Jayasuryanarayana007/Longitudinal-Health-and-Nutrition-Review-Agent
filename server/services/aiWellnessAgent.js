@@ -127,6 +127,18 @@ export async function generateRetrospectiveAndPlan(userStr, baseDateStr, weeklyS
     ? targetActsList.map(a => `${a.type}: ${a.durationMinutes} mins/day${a.quantity ? ` (${a.quantity} ${a.unit || ''})` : ''}`).join(', ')
     : (hasGoal ? `General workout: ${targetActivity} mins/day` : 'No target activities configured yet');
 
+  let formattedFollowUpAnswersText = '';
+  if (userFollowUpAnswers) {
+    if (Array.isArray(userFollowUpAnswers) && userFollowUpAnswers.length > 0) {
+      formattedFollowUpAnswersText = userFollowUpAnswers.map((ans, i) => `- User Response ${i + 1}: "${ans}"`).join('\n');
+    } else if (typeof userFollowUpAnswers === 'object' && Object.keys(userFollowUpAnswers).length > 0) {
+      formattedFollowUpAnswersText = Object.entries(userFollowUpAnswers)
+        .filter(([_, ans]) => String(ans).trim())
+        .map(([idx, ans]) => `- User Response to Q${parseInt(idx) + 1}: "${ans}"`)
+        .join('\n');
+    }
+  }
+
   const systemPrompt = `You are an AI Wellness & Lifestyle Review Agent. Your role is to analyze a user's health tracking data, provide evidence-based wellness guidance, and ask targeted follow-up questions to understand trend drivers.
 
 CRITICAL RULES:
@@ -134,7 +146,8 @@ CRITICAL RULES:
 2. Every recommendation MUST cite a specific Knowledge Base article ID (e.g., kb-sleep-hygiene) from the provided context.
 3. Clearly separate FACTS (objective logged data) from INTERPRETATIONS (your analytical hypotheses).
 4. Include 2-3 targeted follow-up questions inquiring about potential causes for observed trends (e.g., screen time, meal timing, stress).
-5. Keep recommendations actionable, specific, and limited to lifestyle/wellness adjustments.
+5. If the user provided responses to prior follow-up questions, directly integrate their specific disclosures into your interpretations and plan recommendations.
+6. Keep recommendations actionable, specific, and limited to lifestyle/wellness adjustments.
 
 Respond ONLY with valid JSON in this exact structure:
 {
@@ -169,6 +182,7 @@ Respond ONLY with valid JSON in this exact structure:
 - Weight Change: ${weeklySummary.weightDelta > 0 ? '+' : ''}${weeklySummary.weightDelta} kg
 - Target Weight: ${hasGoal ? `${targetWeight} kg` : 'Not set'}
 - Target Activities: ${activitiesDescription}
+${formattedFollowUpAnswersText ? `\n## User Disclosures & Clarifications to Prior Follow-Up Questions:\n${formattedFollowUpAnswersText}\n` : ''}
 
 ## Clinical Knowledge Base Evidence (Use ONLY these for citations)
 

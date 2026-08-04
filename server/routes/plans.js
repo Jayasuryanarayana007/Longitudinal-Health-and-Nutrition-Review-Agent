@@ -157,9 +157,8 @@ router.post('/goals', async (req, res, next) => {
   }
 });
 
-// POST /api/plans/review - Generate AI Weekly Retrospective & RAG Plan Recommendations
 router.post('/review', async (req, res, next) => {
-  const { username, date } = req.body;
+  const { username, date, followUpAnswers } = req.body;
   if (!username || !date) {
     return res.status(400).json({ success: false, message: 'Username and date parameters are required.' });
   }
@@ -242,8 +241,8 @@ router.post('/review', async (req, res, next) => {
       fatsAvg: totalFats
     };
 
-    // 3. Generate Review & Plan via AI Agent
-    const reviewResult = await generateRetrospectiveAndPlan(userStr, baseDateStr, weeklySummary, activeGoal);
+    // 3. Generate Review & Plan via AI Agent (passing user's follow-up answers for context enrichment)
+    const reviewResult = await generateRetrospectiveAndPlan(userStr, baseDateStr, weeklySummary, activeGoal, followUpAnswers);
 
     // Get current plan version
     const currentPlan = await db.get('SELECT version FROM plans WHERE username = ? ORDER BY version DESC LIMIT 1', [userStr]);

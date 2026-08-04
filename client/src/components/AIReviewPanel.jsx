@@ -39,7 +39,7 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
       const response = await fetch('/api/plans/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUser.username, date })
+        body: JSON.stringify({ username: currentUser.username, date, followUpAnswers })
       });
 
       const data = await response.json();
@@ -78,7 +78,8 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
           username: currentUser.username,
           planVersion: reviewData.planVersion,
           suggestions: userSuggestions,
-          userModified
+          userModified,
+          followUpAnswers
         })
       });
 
