@@ -16,7 +16,7 @@ export default function App() {
     if (session) {
       try {
         setCurrentUser(JSON.parse(session));
-      } catch (e) {
+      } catch {
         sessionStorage.removeItem('wellness_session');
       }
     }
@@ -98,14 +98,14 @@ export default function App() {
             onClick={() => setActiveTab('review')}
             className={`app-nav-tab ${activeTab === 'review' ? 'active' : ''}`}
           >
-            <Sparkles size={16} style={{ color: '#10b981' }} /> AI Retrospective & Plans
+            <Sparkles size={16} className="text-emerald" /> AI Retrospective & Plans
           </button>
 
           <button
             onClick={() => setActiveTab('audit')}
             className={`app-nav-tab ${activeTab === 'audit' ? 'active' : ''}`}
           >
-            <ShieldCheck size={16} style={{ color: '#fbbf24' }} /> Audit & Safety Panel
+            <ShieldCheck size={16} className="text-amber" /> Audit & Safety Panel
           </button>
         </div>
 

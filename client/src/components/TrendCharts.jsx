@@ -13,15 +13,7 @@ function SvgLineChart({ data, dataKey, label, unit, color = '#10b981', strokeWid
   const validPoints = data.filter(d => d[dataKey] !== null && d[dataKey] !== undefined && Number(d[dataKey]) > 0);
   if (validPoints.length === 0) {
     return (
-      <div style={{
-        background: 'rgba(15, 23, 42, 0.6)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '12px',
-        padding: '1.5rem',
-        textAlign: 'center',
-        color: '#64748b',
-        fontSize: '0.85rem'
-      }}>
+      <div className="auth-card p-6 text-center text-subtle text-muted" style={{ background: 'rgba(15, 23, 42, 0.6)' }}>
         No logged entries for {label.toLowerCase()} yet.
       </div>
     );
@@ -60,37 +52,18 @@ function SvgLineChart({ data, dataKey, label, unit, color = '#10b981', strokeWid
   const deltaNum = Number(delta);
 
   return (
-    <div style={{
-      background: 'rgba(15, 23, 42, 0.6)',
-      border: '1px solid rgba(255, 255, 255, 0.08)',
-      borderRadius: '12px',
-      padding: '1.25rem',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.75rem',
-      position: 'relative'
-    }}>
+    <div className="auth-card p-5 flex-col gap-3" style={{ background: 'rgba(15, 23, 42, 0.6)', position: 'relative' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="flex-between">
         <div>
-          <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: '500' }}>{label} Trend</span>
-          <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc', marginTop: '0.1rem' }}>
-            {endVal} <span style={{ fontSize: '0.85rem', fontWeight: '400', color: '#64748b' }}>{unit}</span>
+          <span className="text-muted text-semibold" style={{ fontSize: '0.85rem' }}>{label} Trend</span>
+          <div className="text-white text-bold mt-0" style={{ fontSize: '1.4rem' }}>
+            {endVal} <span className="metric-tile-unit">{unit}</span>
           </div>
         </div>
         
         {/* Delta Pill */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.3rem',
-          fontSize: '0.8rem',
-          fontWeight: '600',
-          padding: '0.3rem 0.6rem',
-          borderRadius: '20px',
-          background: deltaNum < 0 ? 'rgba(52, 211, 153, 0.15)' : deltaNum > 0 ? 'rgba(248, 113, 113, 0.15)' : 'rgba(148, 163, 184, 0.15)',
-          color: deltaNum < 0 ? '#34d399' : deltaNum > 0 ? '#f87171' : '#94a3b8'
-        }}>
+        <div className={`badge ${deltaNum < 0 ? 'badge-primary' : deltaNum > 0 ? 'badge-danger' : 'badge-amber'}`}>
           {deltaNum > 0 ? <TrendingUp size={14} /> : deltaNum < 0 ? <TrendingDown size={14} /> : <Minus size={14} />}
           <span>{deltaNum > 0 ? `+${delta}` : delta} {unit}</span>
         </div>
@@ -180,15 +153,7 @@ function SvgBarChart({ data, dataKey, label, unit, color = '#06b6d4' }) {
   const validData = data.filter(d => d[dataKey] !== null && d[dataKey] !== undefined && Number(d[dataKey]) > 0);
   if (validData.length === 0) {
     return (
-      <div style={{
-        background: 'rgba(15, 23, 42, 0.6)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '12px',
-        padding: '1.5rem',
-        textAlign: 'center',
-        color: '#64748b',
-        fontSize: '0.85rem'
-      }}>
+      <div className="auth-card p-6 text-center text-subtle text-muted" style={{ background: 'rgba(15, 23, 42, 0.6)' }}>
         No logged entries for {label.toLowerCase()} yet.
       </div>
     );
@@ -212,22 +177,13 @@ function SvgBarChart({ data, dataKey, label, unit, color = '#06b6d4' }) {
   const avgVal = values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
 
   return (
-    <div style={{
-      background: 'rgba(15, 23, 42, 0.6)',
-      border: '1px solid rgba(255, 255, 255, 0.08)',
-      borderRadius: '12px',
-      padding: '1.25rem',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.75rem',
-      position: 'relative'
-    }}>
+    <div className="auth-card p-5 flex-col gap-3" style={{ background: 'rgba(15, 23, 42, 0.6)', position: 'relative' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="flex-between">
         <div>
-          <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: '500' }}>{label}</span>
-          <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc', marginTop: '0.1rem' }}>
-            {avgVal} <span style={{ fontSize: '0.85rem', fontWeight: '400', color: '#64748b' }}>{unit} (Avg)</span>
+          <span className="text-muted text-semibold" style={{ fontSize: '0.85rem' }}>{label}</span>
+          <div className="text-white text-bold mt-0" style={{ fontSize: '1.4rem' }}>
+            {avgVal} <span className="metric-tile-unit">{unit} (Avg)</span>
           </div>
         </div>
       </div>
@@ -316,24 +272,14 @@ export default function TrendCharts({ dailyHistory }) {
 
   if (!hasRecordedLogs) {
     return (
-      <div style={{
-        background: 'rgba(15, 23, 42, 0.5)',
-        border: '1px dashed rgba(255, 255, 255, 0.15)',
-        padding: '2.5rem 1.5rem',
-        borderRadius: '12px',
-        textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '0.75rem'
-      }}>
-        <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '0.75rem', borderRadius: '50%', color: '#10b981', display: 'flex' }}>
+      <div className="empty-state-callout">
+        <div className="empty-state-icon">
           <Activity size={24} />
         </div>
-        <h4 style={{ margin: 0, color: '#f8fafc', fontSize: '1.05rem', fontWeight: '700' }}>
+        <h4 className="empty-state-title">
           No Trend Data Recorded Yet
         </h4>
-        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.85rem', maxWidth: '480px', lineHeight: '1.5' }}>
+        <p className="empty-state-desc">
           Visual SVG charts for weight, sleep duration, calorie intake, and workout duration will automatically render here as soon as you record daily entries in the Data Logger.
         </p>
       </div>
@@ -341,16 +287,16 @@ export default function TrendCharts({ dailyHistory }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-        <Activity size={18} style={{ color: '#10b981' }} />
-        <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#f8fafc', margin: 0 }}>
+    <div className="flex-col gap-6">
+      <div className="flex-row gap-2 mb-2">
+        <Activity size={18} className="text-emerald" />
+        <h3 className="panel-title m-0" style={{ fontSize: '1.15rem' }}>
           Visual Trend Analytics (Custom SVG)
         </h3>
       </div>
 
       {/* 2x2 Grid of SVG Trend Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+      <div className="grid-2-col">
         {/* Chart 1: Weight Trend */}
         <SvgLineChart
           data={dailyHistory}

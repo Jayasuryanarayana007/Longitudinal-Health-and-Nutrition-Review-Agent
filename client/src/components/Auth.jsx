@@ -102,7 +102,7 @@ export default function Auth({ onLoginSuccess }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form onSubmit={handleSubmit} className="auth-form">
           {!isLogin && (
             <>
               {/* Full Name field */}
@@ -150,8 +150,7 @@ export default function Auth({ onLoginSuccess }) {
                       onChange={handleChange}
                       min={hundredYearsAgoStr}
                       max={todayStr}
-                      className="auth-input"
-                      style={{ colorScheme: 'dark' }}
+                      className="auth-input input-dark-scheme"
                       required
                     />
                   </div>

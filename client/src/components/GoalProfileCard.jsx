@@ -99,19 +99,20 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
           targetActivities: targetActivities.map(a => ({
             type: a.type || 'Workout',
             durationMinutes: parseInt(a.durationMinutes) || 15,
-            quantity: a.quantity ? parseFloat(a.quantity) : null,
+            quantity: a.quantity !== '' ? parseFloat(a.quantity) : null,
             unit: a.unit || 'mins'
           }))
         })
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Failed to update goal profile.');
+      if (!response.ok) throw new Error(data.message || 'Failed to save goals profile.');
 
+      setSuccess(`Active Goals Profile updated to version v${data.version}!`);
       setGoal(data.goal);
       setIsEditing(false);
-      setSuccess(`Active Goal Profile updated to Version v${data.goal.version}!`);
-      if (onGoalsUpdated) onGoalsUpdated(data.goal);
+
+      if (onGoalsUpdated) onGoalsUpdated();
 
     } catch (err) {
       setError(err.message);
@@ -122,77 +123,57 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8' }}>
-        <div className="spinner" style={{ margin: '0 auto 0.5rem auto' }}></div>
-        Loading Active Goals Profile...
+      <div className="auth-card full-width loading-box">
+        <div className="spinner spinner-lg"></div>
+        <span className="text-muted">Loading active target goals...</span>
       </div>
     );
   }
 
-  const activeTargetActivitiesList = (goal && Array.isArray(goal.targetActivities))
-    ? goal.targetActivities
-    : [];
-
-  const totalWeeklyTargetMins = activeTargetActivitiesList.reduce((s, a) => s + (parseInt(a.durationMinutes) || 0), 0) * 7;
+  const activeTargetActivitiesList = goal && Array.isArray(goal.targetActivities) ? goal.targetActivities : [];
+  const totalWeeklyTargetMins = activeTargetActivitiesList.reduce((acc, curr) => acc + ((curr.durationMinutes || 0) * 7), 0);
 
   return (
-    <div className="auth-card" style={{ maxWidth: 'none', padding: '1.75rem', background: 'rgba(15, 23, 42, 0.6)' }}>
-      
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '0.4rem', borderRadius: '8px', color: '#10b981', display: 'flex' }}>
+    <div className="auth-card full-width p-8 flex-col gap-5">
+      {/* Header bar */}
+      <div className="card-header-flex">
+        <div className="flex-row gap-3">
+          <div className="app-brand-icon">
             <Target size={20} />
           </div>
           <div>
-            <h4 style={{ fontSize: '1.1rem', margin: 0, color: '#f8fafc', fontWeight: '700' }}>
+            <h3 className="panel-title text-white m-0" style={{ fontSize: '1.1rem' }}>
               Active Wellness Goals Profile
-            </h4>
-            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-              Version <strong style={{ color: '#10b981' }}>v{goal ? goal.version : 1}</strong> ({goal ? goal.status : 'Active'})
-            </span>
+            </h3>
+            {goal ? (
+              <span className="flex-row gap-2 text-muted" style={{ fontSize: '0.85rem' }}>
+                Version <strong className="badge-version">v{goal.version}</strong> (Active) • Updated {new Date(goal.createdAt).toLocaleDateString()}
+              </span>
+            ) : (
+              <span className="text-muted" style={{ fontSize: '0.85rem' }}>No goals configured yet</span>
+            )}
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            if (!isEditing && (!formData.targetWeight || !formData.targetDailyCalories || !formData.targetSleepHours)) {
-              setFormData({
-                targetWeight: goal?.targetWeight ? String(goal.targetWeight) : '75',
-                targetDailyCalories: goal?.targetDailyCalories ? String(goal.targetDailyCalories) : '2000',
-                targetSleepHours: goal?.targetSleepHours ? String(goal.targetSleepHours) : '8'
-              });
-            }
-            setIsEditing(!isEditing);
-          }}
-          style={{
-            background: isEditing ? 'rgba(255,255,255,0.08)' : 'rgba(16, 185, 129, 0.15)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-            borderRadius: '6px',
-            padding: '0.45rem 0.9rem',
-            color: '#34d399',
-            fontSize: '0.8rem',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem'
-          }}
-        >
-          <Edit3 size={14} /> {isEditing ? 'Cancel Edit' : 'Edit Goals Profile'}
-        </button>
+        {!isEditing && goal && (
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="btn-secondary"
+          >
+            <Edit3 size={14} /> Update Goals
+          </button>
+        )}
       </div>
 
-      {/* Notifications */}
       {success && (
-        <div className="alert-banner success" style={{ marginBottom: '1rem' }}>
+        <div className="alert-banner success">
           <CheckCircle size={16} />
           <span>{success}</span>
         </div>
       )}
       {error && (
-        <div className="alert-banner danger" style={{ marginBottom: '1rem' }}>
+        <div className="alert-banner danger">
           <ShieldAlert size={16} />
           <span>{error}</span>
         </div>
@@ -202,25 +183,15 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
       {!isEditing ? (
         !goal ? (
           /* EMPTY GOALS CALLOUT STATE FOR NEW USERS */
-          <div style={{
-            background: 'rgba(16, 185, 129, 0.06)',
-            border: '1px dashed rgba(16, 185, 129, 0.3)',
-            borderRadius: '10px',
-            padding: '2rem 1.5rem',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '1rem'
-          }}>
-            <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '0.75rem', borderRadius: '50%', color: '#10b981' }}>
+          <div className="empty-state-callout">
+            <div className="empty-state-icon">
               <Target size={28} />
             </div>
             <div>
-              <h4 style={{ fontSize: '1.05rem', color: '#f8fafc', margin: '0 0 0.4rem 0', fontWeight: '700' }}>
+              <h4 className="empty-state-title">
                 No Active Wellness Goals Configured Yet
               </h4>
-              <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0, maxWidth: '480px', lineHeight: '1.5' }}>
+              <p className="empty-state-desc">
                 Welcome! Set your custom daily targets for weight, calories, sleep, and target physical activities to personalize your AI wellness reviews and progress tracking.
               </p>
             </div>
@@ -231,90 +202,60 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
                 setTargetActivities([{ type: 'Walking', durationMinutes: '30', quantity: '5000', unit: 'steps' }]);
                 setIsEditing(true);
               }}
-              style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '0.65rem 1.5rem',
-                color: '#ffffff',
-                fontWeight: '600',
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
-              }}
+              className="auth-submit-btn btn-auto-width"
             >
               <Plus size={16} /> Set Your Initial Wellness Goals
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="flex-col gap-5">
             
             {/* Top 3 Metric Cards: Weight, Calories, Sleep */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-              <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-                  <Scale size={14} style={{ color: '#10b981' }} /> Target Weight
+            <div className="grid-metrics">
+              <div className="metric-tile">
+                <div className="metric-tile-label flex-row gap-1">
+                  <Scale size={14} className="text-emerald" /> Target Weight
                 </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
-                  {goal.targetWeight} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>kg</span>
-                </div>
-              </div>
-
-              <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-                  <Flame size={14} style={{ color: '#06b6d4' }} /> Target Daily Calories
-                </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
-                  {goal.targetDailyCalories} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>kcal</span>
+                <div className="metric-tile-value text-white">
+                  {goal.targetWeight} <span className="metric-tile-unit">kg</span>
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-                  <Moon size={14} style={{ color: '#a855f7' }} /> Target Sleep Duration
+              <div className="metric-tile">
+                <div className="metric-tile-label flex-row gap-1">
+                  <Flame size={14} className="text-cyan" /> Target Daily Calories
                 </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#f8fafc' }}>
-                  {goal.targetSleepHours} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>hrs</span>
+                <div className="metric-tile-value text-white">
+                  {goal.targetDailyCalories} <span className="metric-tile-unit">kcal</span>
+                </div>
+              </div>
+
+              <div className="metric-tile">
+                <div className="metric-tile-label flex-row gap-1">
+                  <Moon size={14} className="text-purple" /> Target Sleep Duration
+                </div>
+                <div className="metric-tile-value text-white">
+                  {goal.targetSleepHours} <span className="metric-tile-unit">hrs</span>
                 </div>
               </div>
             </div>
 
             {/* MULTIPLE TARGET ACTIVITIES DISPLAY PANEL */}
-            <div style={{
-              background: 'rgba(15, 23, 42, 0.4)',
-              padding: '1.25rem',
-              borderRadius: '10px',
-              border: '1px solid rgba(245, 158, 11, 0.2)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '0.85rem', color: '#f59e0b', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <div className="followup-container">
+              <div className="flex-between">
+                <div className="text-amber text-semibold flex-row gap-2" style={{ fontSize: '0.85rem' }}>
                   <Activity size={16} /> Target Physical Activities (Multiple Targets Supported)
                 </div>
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                  Total Target: <strong style={{ color: '#f8fafc' }}>{totalWeeklyTargetMins} mins / week</strong>
+                <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                  Total Target: <strong className="text-white">{totalWeeklyTargetMins} mins / week</strong>
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div className="flex-row flex-wrap gap-3">
                 {activeTargetActivitiesList.map((act, idx) => (
-                  <div key={idx} style={{
-                    background: 'rgba(245, 158, 11, 0.1)',
-                    border: '1px solid rgba(245, 158, 11, 0.25)',
-                    borderRadius: '8px',
-                    padding: '0.5rem 0.9rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.6rem',
-                    color: '#f8fafc'
-                  }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fbbf24' }}>{act.type}</span>
-                    <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
+                  <div key={act.type || idx} className="badge badge-amber flex-row gap-2">
+                    <span className="text-bold text-amber">{act.type}</span>
+                    <span className="text-main" style={{ fontSize: '0.8rem' }}>
                       {act.durationMinutes} mins {act.quantity ? `(${act.quantity} ${act.unit})` : ''}
                     </span>
                   </div>
@@ -326,12 +267,13 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
         )
       ) : (
         /* EDIT MODE FORM */
-        <form onSubmit={handleSaveGoals} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form onSubmit={handleSaveGoals} className="flex-col gap-5">
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-            <div className="auth-input-group" style={{ marginBottom: 0 }}>
-              <label className="auth-label">Target Weight (kg)</label>
+          <div className="grid-metrics">
+            <div className="auth-input-group m-0">
+              <label htmlFor="targetWeight" className="auth-label">Target Weight (kg)</label>
               <input
+                id="targetWeight"
                 type="number"
                 step="any"
                 min="30"
@@ -339,14 +281,14 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
                 value={formData.targetWeight}
                 onChange={(e) => setFormData({ ...formData, targetWeight: e.target.value })}
                 className="auth-input"
-                style={{ paddingLeft: '0.75rem' }}
                 required
               />
             </div>
 
-            <div className="auth-input-group" style={{ marginBottom: 0 }}>
-              <label className="auth-label">Target Daily Cals (kcal)</label>
+            <div className="auth-input-group m-0">
+              <label htmlFor="targetDailyCalories" className="auth-label">Target Daily Cals (kcal)</label>
               <input
+                id="targetDailyCalories"
                 type="number"
                 step="any"
                 min="500"
@@ -354,14 +296,14 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
                 value={formData.targetDailyCalories}
                 onChange={(e) => setFormData({ ...formData, targetDailyCalories: e.target.value })}
                 className="auth-input"
-                style={{ paddingLeft: '0.75rem' }}
                 required
               />
             </div>
 
-            <div className="auth-input-group" style={{ marginBottom: 0 }}>
-              <label className="auth-label">Target Sleep (hrs)</label>
+            <div className="auth-input-group m-0">
+              <label htmlFor="targetSleepHours" className="auth-label">Target Sleep (hrs)</label>
               <input
+                id="targetSleepHours"
                 type="number"
                 step="any"
                 min="1"
@@ -369,57 +311,35 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
                 value={formData.targetSleepHours}
                 onChange={(e) => setFormData({ ...formData, targetSleepHours: e.target.value })}
                 className="auth-input"
-                style={{ paddingLeft: '0.75rem' }}
                 required
               />
             </div>
           </div>
 
           {/* DYNAMIC MULTIPLE TARGET ACTIVITIES EDITOR */}
-          <div style={{
-            background: 'rgba(15, 23, 42, 0.3)',
-            padding: '1.25rem',
-            borderRadius: '10px',
-            border: '1px solid rgba(245, 158, 11, 0.25)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label className="auth-label" style={{ color: '#fbbf24', margin: 0 }}>
+          <div className="followup-container">
+            <div className="flex-between">
+              <label className="auth-label text-amber m-0">
                 Configure Multiple Target Activities
               </label>
               <button
                 type="button"
                 onClick={addTargetActivityRow}
-                style={{
-                  background: 'rgba(245, 158, 11, 0.15)',
-                  border: 'none',
-                  color: '#fbbf24',
-                  borderRadius: '4px',
-                  padding: '0.35rem 0.75rem',
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.3rem'
-                }}
+                className="badge badge-amber"
               >
                 <Plus size={14} /> Add Target Activity
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div className="flex-col gap-2">
               {targetActivities.map((act, index) => (
-                <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                <div key={index} className="flex-row gap-2 items-center">
                   <input
                     type="text"
                     value={act.type}
                     onChange={(e) => handleActivityChange(index, 'type', e.target.value)}
                     placeholder="Activity (e.g. Running)"
                     className="auth-input"
-                    style={{ paddingLeft: '0.75rem' }}
                     required
                   />
                   <input
@@ -428,7 +348,6 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
                     onChange={(e) => handleActivityChange(index, 'durationMinutes', e.target.value)}
                     placeholder="Mins/day"
                     className="auth-input"
-                    style={{ paddingLeft: '0.75rem' }}
                     required
                   />
                   <input
@@ -437,13 +356,11 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
                     onChange={(e) => handleActivityChange(index, 'quantity', e.target.value)}
                     placeholder="Target Qty (opt)"
                     className="auth-input"
-                    style={{ paddingLeft: '0.75rem' }}
                   />
                   <select
                     value={act.unit}
                     onChange={(e) => handleActivityChange(index, 'unit', e.target.value)}
                     className="auth-select"
-                    style={{ paddingLeft: '0.75rem' }}
                   >
                     <option value="steps">steps</option>
                     <option value="km">km</option>
@@ -456,7 +373,7 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
                     <button
                       type="button"
                       onClick={() => removeTargetActivityRow(index)}
-                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                      className="btn-danger p-2"
                     >
                       <Trash size={16} />
                     </button>
@@ -468,8 +385,7 @@ export default function GoalProfileCard({ currentUser, onGoalsUpdated }) {
 
           <button
             type="submit"
-            className="auth-submit-btn"
-            style={{ marginTop: 0, padding: '0.75rem 1.5rem', fontSize: '0.85rem', width: 'fit-content' }}
+            className="auth-submit-btn btn-auto-width"
             disabled={saving}
           >
             {saving ? <div className="spinner"></div> : 'Save New Goals Profile (vNext)'}

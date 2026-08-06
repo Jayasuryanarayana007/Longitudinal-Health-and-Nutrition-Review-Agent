@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, CheckCircle, ShieldAlert, ChevronDown, ChevronUp, BookOpen, Edit3, XCircle, FileText } from 'lucide-react';
+import { Sparkles, CheckCircle, ShieldAlert, ChevronDown, ChevronUp, BookOpen, XCircle, FileText } from 'lucide-react';
 import GoalProfileCard from './GoalProfileCard';
 import ActivePlanCard from './ActivePlanCard';
 
@@ -132,34 +132,23 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
   };
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div className="panel-container">
       
       {/* Page Header */}
       <div>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: '700', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>
+        <h2 className="panel-header-title">
           AI Wellness Agent & Plan Versioning
         </h2>
-        <p style={{ fontSize: '0.9rem', color: '#94a3b8', margin: 0 }}>
+        <p className="panel-header-sub">
           Manage target goals, generate evidence-backed retrospectives, and approve versioned plans.
         </p>
       </div>
 
       {/* Mandatory Medical Disclaimer Banner */}
-      <div style={{
-        background: 'rgba(239, 68, 68, 0.08)',
-        border: '1px solid rgba(239, 68, 68, 0.25)',
-        borderRadius: '10px',
-        padding: '0.85rem 1.25rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        fontSize: '0.82rem',
-        color: '#fca5a5',
-        lineHeight: '1.4'
-      }}>
-        <ShieldAlert size={20} style={{ color: '#ef4444', flexShrink: 0 }} />
+      <div className="medical-disclaimer-banner">
+        <ShieldAlert size={20} className="text-rose flex-shrink-0" />
         <div>
-          <strong style={{ color: '#f87171' }}>Medical & Safety Notice:</strong> This application is an AI-assisted lifestyle & wellness review tool. It does not provide medical diagnosis, prescribe treatments, or guarantee health outcomes. Always consult a licensed physician or healthcare professional for clinical advice.
+          <strong className="text-rose-light">Medical & Safety Notice:</strong> This application is an AI-assisted lifestyle & wellness review tool. It does not provide medical diagnosis, prescribe treatments, or guarantee health outcomes. Always consult a licensed physician or healthcare professional for clinical advice.
         </div>
       </div>
 
@@ -170,33 +159,31 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
       <ActivePlanCard currentUser={currentUser} refreshTrigger={success} />
 
       {/* Main Review Section */}
-      <div className="auth-card" style={{ maxWidth: 'none', padding: '2rem' }}>
+      <div className="auth-card max-w-none card-padded">
         
         {/* Trigger Bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div className="card-header-flex">
           <div>
-            <h3 style={{ fontSize: '1.1rem', margin: '0 0 0.25rem 0', color: '#f8fafc' }}>
+            <h3 className="panel-title text-white m-0" style={{ fontSize: '1.1rem' }}>
               Weekly Review & Retrospective Generator
             </h3>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+            <span className="text-muted" style={{ fontSize: '0.85rem' }}>
               Queries RAG Knowledge Base and separates Facts from Interpretations.
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="flex-row gap-4">
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="auth-input"
-              style={{ width: '150px', padding: '0.5rem 0.75rem', colorScheme: 'dark' }}
+              className="auth-input input-width-md"
             />
 
             <button
               type="button"
               onClick={handleGenerateReview}
-              className="auth-submit-btn"
-              style={{ width: 'auto', padding: '0.65rem 1.4rem', marginTop: 0 }}
+              className="auth-submit-btn btn-auto-width"
               disabled={generating}
             >
               {generating ? (
@@ -212,13 +199,13 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
 
         {/* Notifications */}
         {success && (
-          <div className="alert-banner success" style={{ marginBottom: '1.5rem' }}>
+          <div className="alert-banner success mb-6">
             <CheckCircle size={18} />
             <span>{success}</span>
           </div>
         )}
         {error && (
-          <div className="alert-banner danger" style={{ marginBottom: '1.5rem' }}>
+          <div className="alert-banner danger mb-6">
             <ShieldAlert size={18} />
             <span>{error}</span>
           </div>
@@ -226,30 +213,30 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
 
         {/* REVIEW RESULTS DISPLAY */}
         {reviewData && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginTop: '1rem' }}>
+          <div className="flex-col gap-8 mt-0">
             
             {/* RAG Engine Status Badge */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(30, 41, 59, 0.5)', padding: '0.75rem 1.25rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>RAG Engine Status:</span>
+            <div className="status-bar">
+              <span className="text-muted" style={{ fontSize: '0.85rem' }}>RAG Engine Status:</span>
               {reviewData.llmPowered ? (
-                <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.3rem 0.75rem', borderRadius: '20px' }}>
+                <span className="status-badge-llm">
                   <Sparkles size={13} /> 🤖 Groq LLM RAG (llama-3.3-70b-versatile)
                 </span>
               ) : (
-                <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.3rem 0.75rem', borderRadius: '20px' }}>
+                <span className="status-badge-fallback">
                   <CheckCircle size={13} /> ⚡ Local Deterministic Engine
                 </span>
               )}
             </div>
 
             {/* SECTION 1: Facts vs. Interpretations Separator */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            <div className="grid-2-col">
               {/* FACTS PANEL */}
-              <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1.25rem', borderRadius: '10px', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
-                <h4 style={{ fontSize: '1rem', color: '#06b6d4', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="facts-card">
+                <h4 className="facts-title">
                   <FileText size={16} /> Factual Statistics (Logged Data)
                 </h4>
-                <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#e2e8f0', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <ul className="facts-list">
                   {(reviewData.facts || []).map((fact, idx) => (
                     <li key={idx}>{fact}</li>
                   ))}
@@ -257,11 +244,11 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
               </div>
 
               {/* INTERPRETATIONS PANEL */}
-              <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '1.25rem', borderRadius: '10px', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
-                <h4 style={{ fontSize: '1rem', color: '#a855f7', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="interp-card">
+                <h4 className="interp-title">
                   <Sparkles size={16} /> Contextual AI Hypotheses (Interpretations)
                 </h4>
-                <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#e2e8f0', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <ul className="facts-list">
                   {(reviewData.interpretations || []).map((interp, idx) => (
                     <li key={idx}>{interp}</li>
                   ))}
@@ -270,62 +257,49 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
             </div>
 
             {/* SECTION 2: Editable Retrospective Text Block */}
-            <div style={{ background: 'rgba(15, 23, 42, 0.3)', padding: '1.25rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <label className="auth-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#f8fafc' }}>Editable Retrospective Text Narrative</span>
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>You can customize this narrative before archiving</span>
+            <div className="retro-edit-card">
+              <label htmlFor="retro-text" className="retro-label">
+                <span className="retro-label-title">Editable Retrospective Text Narrative</span>
+                <span className="retro-label-sub">You can customize this narrative before archiving</span>
               </label>
               <textarea
+                id="retro-text"
                 rows={3}
                 value={editedRetroText}
                 onChange={(e) => setEditedRetroText(e.target.value)}
-                className="auth-input"
-                style={{ padding: '0.75rem', height: 'auto', fontFamily: 'inherit', resize: 'vertical' }}
+                className="retro-textarea retro-textarea-custom"
               />
             </div>
 
             {/* SECTION 2.5: Targeted AI Follow-Up Questions */}
             {reviewData.followUpQuestions && reviewData.followUpQuestions.length > 0 && (
-              <div style={{ background: 'rgba(251, 191, 36, 0.04)', padding: '1.25rem', borderRadius: '10px', border: '1px solid rgba(251, 191, 36, 0.2)' }}>
-                <h4 style={{ fontSize: '0.95rem', color: '#fbbf24', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700' }}>
+              <div className="followup-container">
+                <h4 className="followup-title">
                   <Sparkles size={16} /> Targeted AI Follow-Up Questions (Trend Insights)
                 </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div className="followup-list">
                   {reviewData.followUpQuestions.map((q, idx) => (
-                    <div key={idx} style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.85rem', color: '#e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div key={idx} className="followup-item">
                       <div>
-                        <strong style={{ color: '#fbbf24', marginRight: '0.4rem' }}>Q{idx + 1}:</strong> {q}
+                        <strong className="text-amber" style={{ marginRight: '0.4rem' }}>Q{idx + 1}:</strong> {q}
                       </div>
                       <input
                         type="text"
                         placeholder="Type your response to refine current plan recommendations..."
                         value={followUpAnswers[idx] || ''}
                         onChange={(e) => setFollowUpAnswers({ ...followUpAnswers, [idx]: e.target.value })}
-                        className="auth-input"
-                        style={{ padding: '0.5rem 0.75rem', fontSize: '0.82rem', background: 'rgba(30, 41, 59, 0.7)' }}
+                        className="auth-input followup-input"
                       />
                     </div>
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.85rem' }}>
+                <div className="flex-end mt-0" style={{ marginTop: '0.85rem' }}>
                   <button
                     type="button"
                     onClick={handleGenerateReview}
                     disabled={generating}
-                    style={{
-                      background: 'rgba(251, 191, 36, 0.15)',
-                      border: '1px solid rgba(251, 191, 36, 0.4)',
-                      color: '#fbbf24',
-                      borderRadius: '6px',
-                      padding: '0.55rem 1.1rem',
-                      fontSize: '0.82rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.45rem'
-                    }}
+                    className="badge badge-amber btn-auto-width p-2"
                   >
                     <Sparkles size={14} /> {generating ? 'Refine Plan...' : '✨ Refine Current Plan Recommendations with My Answers'}
                   </button>
@@ -334,78 +308,52 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
             )}
 
             {/* SECTION 3: Interactive Plan Approval Panel (v1 -> v2) */}
-            <div style={{
-              background: 'rgba(15, 23, 42, 0.5)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.25rem'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="auth-card max-w-none p-6 flex-col gap-5" style={{ borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+              <div className="flex-between">
                 <div>
-                  <h4 style={{ fontSize: '1.1rem', margin: '0 0 0.25rem 0', color: '#f8fafc' }}>
+                  <h4 className="panel-title text-white m-0" style={{ fontSize: '1.1rem' }}>
                     Proposed Plan Recommendations (Version v{reviewData.planVersion})
                   </h4>
-                  <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                  <span className="text-muted" style={{ fontSize: '0.85rem' }}>
                     Every proposal includes evidence from the Knowledge Base. Click the dropdown icon beside any suggestion to view supporting evidence.
                   </span>
                 </div>
                 {userModified && (
-                  <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: '600', background: 'rgba(52, 211, 153, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                  <span className="badge-version">
                     ✍️ Targets Modified
                   </span>
                 )}
               </div>
 
               {/* Suggestions List with Expandable Evidence Dropdown Chevrons */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="flex-col gap-4">
                 {userSuggestions.map((rec, index) => {
                   const isExpanded = !!expandedEvidence[index];
                   return (
-                    <div key={index} style={{
-                      background: 'rgba(15, 23, 42, 0.4)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '8px',
-                      padding: '1rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.75rem'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '220px' }}>
+                    <div key={rec.category || index} className="rec-card rec-default">
+                      <div className="flex-between flex-wrap gap-3">
+                        <div className="flex-row gap-2" style={{ flex: 1, minWidth: '220px' }}>
                           
                           {/* Dropdown Chevron Icon Button */}
                           <button
                             type="button"
                             onClick={() => toggleEvidence(index)}
                             title="Toggle Evidence & Knowledge Base Details"
-                            style={{
-                              background: isExpanded ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.06)',
-                              border: 'none',
-                              borderRadius: '6px',
-                              padding: '0.35rem',
-                              color: isExpanded ? '#34d399' : '#94a3b8',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.15s ease'
-                            }}
+                            className="app-nav-tab p-2"
+                            style={{ background: isExpanded ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.06)', color: isExpanded ? '#34d399' : '#94a3b8' }}
                           >
                             {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </button>
 
                           <div>
-                            <strong style={{ color: '#10b981', fontSize: '0.9rem' }}>[{rec.category}]</strong>{' '}
-                            <span style={{ color: '#f8fafc', fontSize: '0.9rem', fontWeight: '500' }}>{rec.proposal}</span>
+                            <strong className="text-emerald" style={{ fontSize: '0.9rem' }}>[{rec.category}]</strong>{' '}
+                            <span className="text-white" style={{ fontSize: '0.9rem', fontWeight: '500' }}>{rec.proposal}</span>
                           </div>
                         </div>
 
                         {/* Editable Target Value Input */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Target:</label>
+                        <div className="flex-row gap-2">
+                          <label className="text-muted" style={{ fontSize: '0.8rem' }}>Target:</label>
                           <input
                             type="number"
                             step="any"
@@ -419,32 +367,13 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
 
                       {/* Expandable Scientific Evidence Dropdown Accordion */}
                       {isExpanded && (
-                        <div style={{
-                          background: 'rgba(16, 185, 129, 0.08)',
-                          border: '1px solid rgba(16, 185, 129, 0.25)',
-                          borderRadius: '6px',
-                          padding: '0.75rem 1rem',
-                          fontSize: '0.8rem',
-                          color: '#e2e8f0',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.5rem',
-                          marginTop: '0.25rem'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            <div style={{ fontWeight: '600', color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <div className="evidence-box">
+                          <div className="flex-between flex-wrap gap-2">
+                            <div className="evidence-title">
                               <BookOpen size={14} /> Clinical Reference: #{rec.kbArticleId || 'RAG-Ref'}
                             </div>
                             {rec.evidenceGrade && (
-                              <span style={{
-                                background: 'rgba(6, 182, 212, 0.15)',
-                                color: '#22d3ee',
-                                border: '1px solid rgba(6, 182, 212, 0.3)',
-                                fontSize: '0.75rem',
-                                padding: '0.15rem 0.5rem',
-                                borderRadius: '12px',
-                                fontWeight: '600'
-                              }}>
+                              <span className="badge badge-cyan">
                                 🧪 {rec.evidenceGrade}
                               </span>
                             )}
@@ -455,14 +384,14 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
                           </div>
 
                           {/* Metadata: DOI & MeSH Terms */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.4rem', marginTop: '0.2rem', fontSize: '0.75rem', color: '#94a3b8', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div className="flex-between flex-wrap gap-2 pt-2 mt-1 border-subtle" style={{ fontSize: '0.75rem', color: '#94a3b8', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                             {rec.doi && (
-                              <span><strong>DOI:</strong> <a href={`https://doi.org/${rec.doi}`} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>{rec.doi}</a></span>
+                              <span><strong>DOI:</strong> <a href={`https://doi.org/${rec.doi}`} target="_blank" rel="noreferrer" className="text-cyan">{rec.doi}</a></span>
                             )}
                             {Array.isArray(rec.meshTerms) && rec.meshTerms.length > 0 && (
-                              <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                              <div className="flex-row flex-wrap gap-1">
                                 {rec.meshTerms.map((term, tIdx) => (
-                                  <span key={tIdx} style={{ background: 'rgba(255,255,255,0.06)', padding: '0.1rem 0.4rem', borderRadius: '4px', color: '#cbd5e1' }}>
+                                  <span key={tIdx} className="mesh-badge">
                                     #{term}
                                   </span>
                                 ))}
@@ -477,23 +406,11 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
               </div>
 
               {/* Action Buttons: Approve vs Reject */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '0.5rem' }}>
+              <div className="flex-end gap-4 mt-2">
                 <button
                   type="button"
                   onClick={() => setShowRejectModal(true)}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    color: '#f87171',
-                    borderRadius: '8px',
-                    padding: '0.75rem 1.4rem',
-                    fontWeight: '600',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
+                  className="btn-danger"
                   disabled={actionLoading}
                 >
                   <XCircle size={16} /> Decline Recommendation
@@ -502,8 +419,7 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
                 <button
                   type="button"
                   onClick={handleApprovePlan}
-                  className="auth-submit-btn"
-                  style={{ width: 'auto', marginTop: 0, padding: '0.75rem 1.6rem', fontSize: '0.85rem' }}
+                  className="auth-submit-btn btn-auto-width"
                   disabled={actionLoading}
                 >
                   {actionLoading ? (
@@ -536,34 +452,33 @@ export default function AIReviewPanel({ currentUser, onGoalsUpdated }) {
           zIndex: 100,
           padding: '1rem'
         }}>
-          <div className="auth-card" style={{ maxWidth: '500px', width: '100%', padding: '2rem' }}>
-            <h3 style={{ fontSize: '1.2rem', margin: '0 0 0.5rem 0', color: '#f87171' }}>Decline Plan Recommendation</h3>
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '0 0 1.25rem 0' }}>
+          <div className="auth-card p-8" style={{ maxWidth: '500px' }}>
+            <h3 className="text-rose-light m-0 mb-2" style={{ fontSize: '1.2rem' }}>Decline Plan Recommendation</h3>
+            <p className="text-muted m-0 mb-4" style={{ fontSize: '0.85rem' }}>
               Please provide feedback on why you are declining these proposed targets. This will be stored for audit tracking.
             </p>
 
-            <form onSubmit={handleRejectPlanSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form onSubmit={handleRejectPlanSubmit} className="flex-col gap-5">
               <textarea
                 rows={3}
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 placeholder="e.g. Travel schedule makes 8h sleep impossible this week"
-                className="auth-input"
-                style={{ padding: '0.75rem', height: 'auto', fontFamily: 'inherit' }}
+                className="auth-input retro-textarea-custom"
                 required
               />
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div className="flex-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowRejectModal(false)}
-                  style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: '6px', padding: '0.6rem 1rem', cursor: 'pointer' }}
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  style={{ background: '#ef4444', border: 'none', color: '#ffffff', fontWeight: '600', borderRadius: '6px', padding: '0.6rem 1.2rem', cursor: 'pointer' }}
+                  className="btn-danger"
                   disabled={actionLoading}
                 >
                   Confirm Decline

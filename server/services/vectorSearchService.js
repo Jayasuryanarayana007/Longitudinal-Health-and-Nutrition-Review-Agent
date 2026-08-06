@@ -7,7 +7,6 @@
  */
 
 import { knowledgeBaseArticles } from '../data/knowledgeBase.js';
-
 // Vocabulary builder for text vectorization
 function tokenize(text) {
   return String(text || '')
